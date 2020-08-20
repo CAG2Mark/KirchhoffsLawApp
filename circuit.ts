@@ -185,13 +185,8 @@ class Cell implements IComponent {
         this.toNextComponent(component)
     }
 
-    getDeltaEmfEquation(approachingFrom: IComponent) {
-        let negative = false
-        // if approaching from the tail (the negative terminal)
-        // then it charges the cell.
-        if (approachingFrom === this.tail) {
-            negative = true;
-        }
+    getDeltaEmfEquation(curSegment:Segment, curJunction:Junction) {
+        let negative = curSegment.endJunction === curJunction;
 
         // but reverse it again if it the cell is inverted
         if (this.isTailToHead) {
@@ -213,6 +208,7 @@ class Cell implements IComponent {
     getNextComponent(previousComponent: IComponent) {
         return (previousComponent === this.tail) ? this.head : this.tail;
     }
+
 
     // Returns the next component based on the direction of the cell termianls.
     getNextLogicalComponent() {
@@ -339,8 +335,6 @@ class Circuit {
                         newSegment.endJunction = <Junction>currentCom;
                         segments.push(newSegment);
                     }
-
-                    
 
                 });
                 i++;
@@ -478,36 +472,62 @@ class Loop {
 
     anyCell: Cell;
 
-    // TODO: Fix the infinite loop.
-    generateEquations() {
+    // All segments in the circuit.
+    generateEquations(allSegments:Segment[]) {
     
         let startingCell = this.anyCell;
+
+        let allJunctions:Junction[] = [];
+
+        //#endregion
 
         // FORMAT:
         // If it ADDS emf, make it negative.
         // If it USES UP emf, make it positive.
-        
-        // Initialize with the starting cell already there.
-        let law2Expressions:string[] = [ (-startingCell.emf).toString() ];
+
+        //#region Law 2
 
         // Iterate through all the components until returned to the starting cell.
-        let nextComponent:IComponent = startingCell.getNextLogicalComponent();
+        let curComponent:IComponent = startingCell.getNextLogicalComponent();
         let prevComponent:IComponent = startingCell;
 
         // pre-initialise
-        var components = this.getComponents();
-        while (nextComponent !== startingCell) {
-            if (nextComponent instanceof Junction) {
-                let junc = <Junction>nextComponent;
+        let components = this.getComponents();
+
+        // Find the closest previous junction.
+        let curJunction:Junction;
+        let prev:IComponent = curComponent;
+        let next:IComponent = prevComponent
+        while (!(next instanceof Junction)) {
+            let temp = next;
+            next = next.getNextComponent(prev);
+            prev = temp;
+        }
+
+        curJunction = next;
+
+        // Initialize with the starting cell already there.
+        let law2Expressions:string[] = [ startingCell.getDeltaEmfEquation(findParentSegment(startingCell, this.segments), curJunction) ];
+        
+        while (curComponent !== startingCell) {
+
+            if (curComponent instanceof Junction) {
+                let junc = <Junction>curComponent;
                 // search for the next component and set it as the next component
+                let workingComponents = arrRemove([...components], prevComponent);
                 for (var i = 0; i < junc.components.length; i++) {
                     let juncComp = junc.components[i];
                     let breakFlag = false;
-                    for (var j = 0; j < components.length; j++) {
-                        if (juncComp === components[j]) {
+                    for (var j = 0; j < workingComponents.length; j++) {
+                        if (juncComp === workingComponents[j]) {
 
-                            prevComponent = nextComponent;
-                            nextComponent = components[j];
+                            let temp = curComponent;
+                            curComponent = workingComponents[j];
+                            prevComponent = temp;
+                            curJunction = junc;
+
+                            // Add the current junction to the list of junctions in preparation for law 1 calculation
+                            allJunctions.push(junc);
 
                             breakFlag = true;
                             break;
@@ -518,17 +538,18 @@ class Loop {
                 
             } else {
                 // find the current segment
-                let currentSegment:Segment = findParentSegment(nextComponent, this.segments);
+                let curSegment:Segment = findParentSegment(curComponent, this.segments);
                 
-                if (nextComponent instanceof Cell) {
-                    law2Expressions.push((<Cell>nextComponent).getDeltaEmfEquation(prevComponent));
+                if (curComponent instanceof Cell) {
+                    law2Expressions.push((<Cell>curComponent).getDeltaEmfEquation(curSegment, curJunction));
                 }
                 else {
-                    law2Expressions.push(generatePdEquation(currentSegment, nextComponent));
+                    law2Expressions.push(generatePdEquation(curSegment, curComponent, curJunction));
                 }
 
-                prevComponent = nextComponent;
-                nextComponent = nextComponent.getNextComponent(nextComponent);
+                let temp = curComponent;
+                curComponent = curComponent.getNextComponent(prevComponent);
+                prevComponent = temp;
             }
         }
 
@@ -537,25 +558,61 @@ class Loop {
         law2Expressions.forEach(expr => {
             law2Equation += (expr + " + ");
         });
+        // remove the final " + "
+        law2Equation = law2Equation.substring(0, law2Equation.length - 3);
 
-        return law2Equation;
+        law2Equation += " = 0";
+
+        //#endregion
+
+        //#region LAW 1
+
+        let law1Equations:string[] = [];
+
+        allJunctions.forEach(junc => {
+
+            let equation = "";
+
+            junc.components.forEach(comp => {
+                let segment = findParentSegment(comp, allSegments);
+                equation += ("(" + segment.getOutputCurrentExpr(junc) + ") + ");
+            });
+
+            equation = equation.substring(0, equation.length - 3);
+            equation += " = 0";
+
+            law1Equations.push(equation);
+        });
+
+        //#endregion
+
+        return [law2Equation, ...law1Equations];
     }
 }
 
-function findParentSegment(componentToFind:IComponent, segments:Segment[]) {
-    segments.forEach(seg => {
-        seg.components.forEach(comp => {
+function findParentSegment(componentToFind:IComponent, segments:Segment[]):Segment {
+    for (var i = 0; i < segments.length; i++) {
+        let seg = segments[i];
+
+        for (var j = 0; j < seg.components.length; j++) {
+            var comp = seg.components[j];
+
             if (comp === componentToFind) {
                 return seg;
             }
-        });
-    });
+        }
+    }
     return null;
 }
 
-function generatePdEquation(segment:Segment, comp:IComponent) {
-    //let curStr:string = segment.current == null ? segment.compId : segment.current.toString();
-    let curStr:string = "somecurrent";
+function generatePdEquation(segment:Segment, comp:IComponent, approachingJunction:Junction) {
+
+    let isNegative:boolean = approachingJunction === segment.endJunction;
+
+    let curStr:string = segment.current == null ? 
+        (isNegative ? "-" : "" ) + segment.compId : 
+        ((isNegative ? -1 : 1 ) * segment.current).toString();
+    //let curStr:string = "somecurrent";
     let resStr:string = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
 
     return "((" + curStr + ") * (" + resStr + "))";
@@ -575,6 +632,7 @@ class Segment {
 
     components: IComponent[] = [];
 
+    // The direction of the current is from START to END.
     current: number;
     constructor(components ? : IComponent[]) {
         if (components != null) {
@@ -582,6 +640,7 @@ class Segment {
         }
 
         this.compId = "current" + getId();
+
     }
 
     startJunction: Junction;
@@ -592,6 +651,17 @@ class Segment {
             this.startJunction.id,
             this.endJunction.id
         ]
+    }
+
+    getOutputCurrentExpr(outputJunction: Junction): string {
+        let isNegative = outputJunction === this.startJunction
+
+        if (this.current == null) {
+            return (isNegative ? "-" : "") + this.compId;
+        }
+        else {
+            return ((isNegative ? -1 : 1) * this.current).toString();
+        }
     }
 }
 
@@ -634,11 +704,7 @@ var segs = circ.generateSegments();
 var loops = circ.generateLoops(segs);
 
 loops.forEach(loop => {
-    console.log(loop);
-});
-
-loops.forEach(loop => {
-    //console.log(loop.generateEquations());
+    console.log(loop.generateEquations(segs));
 });
 
 
