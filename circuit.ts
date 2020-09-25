@@ -707,7 +707,38 @@ loops.forEach(loop => {
     console.log(loop.generateEquations(segs));
 });
 
+//#endregion
 
+//#region equation solver
 
+// Using nerdamer
+
+// https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
+function onlyUnique(value, index, self) { 
+    return self.indexOf(value) == index;
+}
+
+// @ts-ignore
+import nerdamer = require("nerdamer");
+
+function simplifySystem(loopEquations:string[], circuitEquations:string[], varCount) {
+    // remove redundant equations from both arrays
+    for (var i = 0; i < loopEquations.length; i++) {
+        loopEquations[i] = nerdamer(`simplify(${loopEquations[i]})`).toString();
+    }
+    loopEquations = loopEquations.filter(onlyUnique);
+
+    for (var i = 0; i < circuitEquations.length; i++) {
+        circuitEquations[i] = nerdamer(`simplify(${circuitEquations[i]})`).toString();
+    }
+    circuitEquations = circuitEquations.filter(onlyUnique);
+
+    let targetCount = varCount - circuitEquations.length;
+
+    loopEquations = loopEquations.slice(0, targetCount);
+
+    return [...circuitEquations, ...loopEquations];
+
+}
 
 //#endregion
