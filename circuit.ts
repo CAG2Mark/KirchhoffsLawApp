@@ -157,7 +157,7 @@ class Cell implements IComponent {
     // Changes it so that current flows from the tail to head
     isTailToHead: boolean;
 
-    constructor(emf: number) {
+    constructor(emf?:number) {
         this.emf = emf;
         this.pd = emf;
         this.resistance = 0;
@@ -631,13 +631,6 @@ function generatePdEquation(segment:Segment, comp:IComponent, approachingJunctio
     if (comp.resistance == null) variables.push(comp.compId + resistanceSuffix);
 
     return [["((" + curStr + ") * (" + resStr + "))"], variables];
-}
-
-function generateResistanceEquation(segment:Segment, comp:IComponent) {
-    let curStr:string = segment.current == null ? segment.compId : segment.current.toString();
-    let pdStr:string = comp.pd == null ? segment.compId + pdSuffix : comp.pd.toString();
-
-    return "((" + curStr + ") * (" + pdStr + "))";
 }
 
 // Represents a segment of the circuit where the current is constant, ie between junctions. 

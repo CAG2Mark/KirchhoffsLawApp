@@ -8,10 +8,17 @@ function onlyUnique(value, index, self) {
 }
 
 function simplifySystem(loopEquations, circuitEquations, varCount) {
+
     // remove redundant equations from both arrays
+
+    let simplLoopEqns = [];
+
     for (var i = 0; i < loopEquations.length; i++) {
 
-        loopEquations[i] = simplifyEquation(loopEquations[i])[0];
+        let simpls = simplifyEquation(loopEquations[i]);
+        if (!arrIncludes(simplLoopEqns, simpls[0]) && !arrIncludes(simplLoopEqns, simpls[1])) {
+            simplLoopEqns.push(simpls[0])
+        }
     }
 
     let simplCircuitEqns = [];
@@ -26,9 +33,11 @@ function simplifySystem(loopEquations, circuitEquations, varCount) {
         }
     }
 
+    // nerdamer requires that a system of linear equations contains the same number of equations as the number of unknowns
+
     let targetCount = varCount - simplCircuitEqns.length;
-    loopEquations = loopEquations.slice(0, targetCount);
-    return [...simplCircuitEqns, ...loopEquations];
+    simplLoopEqns = simplLoopEqns.slice(0, targetCount);
+    return [...simplCircuitEqns, ...simplLoopEqns];
 }
 
 // returns two possible simplfied versions of an equation, one postiive and one negative
@@ -44,6 +53,5 @@ function simplifyEquation(eqn) {
 //#endregion
 
 function solveSystem(eqns) {
-    console.log(`solveEquations(${eqns.toString()})`);
     return nerdamer(`solveEquations([${eqns.toString()}])`);
 }
