@@ -473,11 +473,17 @@ class Loop {
     anyCell: Cell;
 
     // All segments in the circuit.
-    generateEquations(allSegments:Segment[]) {
+    // The first array is the law 2 (loop law) equation.
+    // The second array are the junction equations.
+    // The third array contains all variables used.
+    generateEquations(allSegments:Segment[]):string[][] {
     
         let startingCell = this.anyCell;
 
         let allJunctions:Junction[] = [];
+
+        // variables used
+        let variables:string[] = [];
 
         //#endregion
 
@@ -544,7 +550,10 @@ class Loop {
                     law2Expressions.push((<Cell>curComponent).getDeltaEmfEquation(curSegment, curJunction));
                 }
                 else {
-                    law2Expressions.push(generatePdEquation(curSegment, curComponent, curJunction));
+                    let eqns = generatePdEquation(curSegment, curComponent, curJunction);
+                    law2Expressions.push(eqns[0][0]);
+                    // add vars
+                    variables = variables.concat(eqns[1]);
                 }
 
                 let temp = curComponent;
@@ -586,7 +595,7 @@ class Loop {
 
         //#endregion
 
-        return [law2Equation, ...law1Equations];
+        return [[law2Equation], law1Equations, variables];
     }
 }
 
@@ -605,6 +614,7 @@ function findParentSegment(componentToFind:IComponent, segments:Segment[]):Segme
     return null;
 }
 
+// Generates the PD equation given the inputs, and also output the non-constant variables.
 function generatePdEquation(segment:Segment, comp:IComponent, approachingJunction:Junction) {
 
     let isNegative:boolean = approachingJunction === segment.endJunction;
@@ -615,7 +625,12 @@ function generatePdEquation(segment:Segment, comp:IComponent, approachingJunctio
     //let curStr:string = "somecurrent";
     let resStr:string = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
 
-    return "((" + curStr + ") * (" + resStr + "))";
+    let variables:string[] = [];
+
+    if (segment.current == null) variables.push(segment.compId);
+    if (comp.resistance == null) variables.push(comp.compId + resistanceSuffix);
+
+    return [["((" + curStr + ") * (" + resStr + "))"], variables];
 }
 
 function generateResistanceEquation(segment:Segment, comp:IComponent) {
@@ -664,81 +679,3 @@ class Segment {
         }
     }
 }
-
-//#region TEST
-
-
-// modelling after https://media.discordapp.net/attachments/212472977013342211/714479735018750093/unknown.png
-let cell1 = new Cell(6);
-let res1 = new Resistor();
-res1.resistance = 2;
-let res2 = new Resistor();
-res2.resistance = 2;
-let res3 = new Resistor();
-res3.resistance = 2;
-let res4 = new Resistor();
-res4.resistance = 2;
-let cell2 = new Cell(6);
-
-let junc1 = new Junction();
-let junc2 = new Junction();
-
-cell1.head = res4; cell1.tail = res1; 
-res1.head = cell1; res1.tail = junc1;
-junc1.components = [ res1, res2, cell2 ];
-
-res2.head = junc1; res2.tail = junc2;
-
-cell2.head = junc1; cell2.tail = res3;
-res3.head = cell2; res3.tail = junc2;
-
-junc2.components = [ res2, res3, res4 ];
-res4.head = junc2; res4.tail = cell1;
-
-var circ = new Circuit();
-circ.components = [cell1, cell2, res1, res2, res3, res4, junc1, junc2 ];
-
-var segs = circ.generateSegments();
-
-
-var loops = circ.generateLoops(segs);
-
-loops.forEach(loop => {
-    console.log(loop.generateEquations(segs));
-});
-
-//#endregion
-
-//#region equation solver
-
-// Using nerdamer
-
-// https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
-function onlyUnique(value, index, self) { 
-    return self.indexOf(value) == index;
-}
-
-// @ts-ignore
-import nerdamer = require("nerdamer");
-
-function simplifySystem(loopEquations:string[], circuitEquations:string[], varCount) {
-    // remove redundant equations from both arrays
-    for (var i = 0; i < loopEquations.length; i++) {
-        loopEquations[i] = nerdamer(`simplify(${loopEquations[i]})`).toString();
-    }
-    loopEquations = loopEquations.filter(onlyUnique);
-
-    for (var i = 0; i < circuitEquations.length; i++) {
-        circuitEquations[i] = nerdamer(`simplify(${circuitEquations[i]})`).toString();
-    }
-    circuitEquations = circuitEquations.filter(onlyUnique);
-
-    let targetCount = varCount - circuitEquations.length;
-
-    loopEquations = loopEquations.slice(0, targetCount);
-
-    return [...circuitEquations, ...loopEquations];
-
-}
-
-//#endregion
