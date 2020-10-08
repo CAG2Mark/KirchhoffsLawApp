@@ -32,6 +32,16 @@ class CircuitUIComponent {
     
 }
 
+var allComponents = [];
+
+function findComponentFromElem(elem) {
+    for (var i = 0; i < allComponents.length; i++) {
+        if (allComponents[i].element == elem) {
+            return allComponents[i];
+        }
+    }
+}
+
 //#endregion
 
 // #region init draggables
@@ -58,7 +68,7 @@ function draggableBaseMouseDown(elem) {
 
     clone.classList.add("dragging");
     clone.classList.add("draggable");
-    clone.classList.remove("draggable-toolbar");
+    clone.classList.remove("draggable-base");
 
     document.body.appendChild(clone);
 
@@ -96,6 +106,8 @@ function draggableMouseDown(elem) {
 
 //#endregion
 
+//#region  event listeners
+
 document.addEventListener('mousemove', onMouseMove);
 document.addEventListener('mouseup', onMouseUp);
 
@@ -116,6 +128,7 @@ function onMouseUp(e) {
         isDraggingBase = false;
         // paste onto the drawing area
         document.getElementById("circuit-area").appendChild(currentDraggingElem);
+        currentDraggingElem.classList.remove("dragging");
 
         // reads from this fixed var instead of the changing one
         var x = currentDraggingElem;
@@ -127,9 +140,28 @@ function onMouseUp(e) {
 
     if (isDragging) {
         isDragging = false;
+        currentDraggingElem.classList.remove("dragging");
         currentDraggingElem = null;
     }
 }
+
+//#endregion
+
+//#region create components
+
+//#region left
+
+function createComponentLeft() {
+    
+}
+
+//#endregion
+
+//#region right
+
+//#endregion
+
+//#endregion
 
 //#region TEST
 // modelling after https://media.discordapp.net/attachments/212472977013342211/714479735018750093/unknown.png
