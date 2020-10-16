@@ -49,6 +49,10 @@ html, body {
     position: relative;
 
     overflow: visible;
+
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
 }
 
 .hidden, .draggable-base > .comp-circle-left, .draggable-base > .comp-circle-right, .draggable-base > .add-component-panel, .dragging > .add-component-panel {
@@ -166,6 +170,44 @@ html, body {
 .dragging {
     position: absolute;
 }
+
+/* #endregion */
+
+/* #region wire styles */
+
+.circuit-wire {
+    position: absolute;
+    overflow: visible;
+}
+
+/* #region circuit directions - horizontal */
+
+.wire-h > .wire-1, .wire-h > .wire-2, .wire-h > .wire-3 {
+    background-color: black;
+    user-select: none;
+    position: absolute;
+}
+
+.wire-h > .wire-1, .wire-h > .wire-3 {
+    height: 8px;
+    width: 50%;
+}
+
+.wire-h > .wire-2 {
+    width: 8px;
+    height: 100%;
+    left: calc(50% - 4px);
+}
+
+.wire-nw > .wire-1 {
+    top: 0;
+}
+
+.wire-se > .wire-3 {
+    bottom: 0;
+    right: 0;
+}
+
 
 /* #endregion */
 
