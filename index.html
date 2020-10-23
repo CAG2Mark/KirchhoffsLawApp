@@ -45,7 +45,7 @@
     </div>
     <div id="toolbar">
         <div id="toolbar-wrapper">
-            <div class="draggable-base circuit-icon" data-circuit-component="cell">
+            <div class="draggable-base circuit-icon" data-circuit-component="cell" id="cell-base">
                 <img src="Icons/Cell.svg" class="circuit-icon" id="cell-icon">
                 <svg width="16" height="16" class="comp-circle-left vertical-align">
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
@@ -54,17 +54,17 @@
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
                 </svg>
                 <div class="add-component-panel add-component-left vertical-align">
-                    <button onmousedown="createCompLeft()">Create component</button>
-                    <button onmousedown="connectCompLeft()">Connect component</button>
-                    <button onmousedown="createJuncLeft()">Create junction</button>
+                    <button onmousedown="createCompLeft(this.parentElement.parentElement)">Create component</button>
+                    <button onmousedown="connectCompLeft(this.parentElement.parentElement)">Connect component</button>
+                    <button onmousedown="createJuncLeft(this.parentElement.parentElement)">Create junction</button>
                 </div>
                 <div class="add-component-panel add-component-right vertical-align">
-                    <button onmousedown="createCompRight()">Create component</button>
-                    <button onmousedown="connectCompRight()">Connect component</button>
-                    <button onmousedown="createJuncRight()">Create junction</button>
+                    <button onmousedown="createCompRight(this.parentElement.parentElement)">Create component</button>
+                    <button onmousedown="connectCompRight(this.parentElement.parentElement)">Connect component</button>
+                    <button onmousedown="createJuncRight(this.parentElement.parentElement)">Create junction</button>
                 </div>
             </div>
-            <div class="draggable-base circuit-icon" data-circuit-component="resistor">
+            <div class="draggable-base circuit-icon" data-circuit-component="resistor" id="resistor-base">
                 <img src="Icons/Resistor.svg" class="circuit-icon" id="resistor-icon">
                 <svg width="16" height="16" class="comp-circle-left vertical-align">
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
@@ -73,14 +73,14 @@
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
                 </svg>
                 <div class="add-component-panel add-component-left vertical-align">
-                    <button onmousedown="createCompLeft()">Create component</button>
-                    <button onmousedown="connectCompLeft()">Connect component</button>
-                    <button onmousedown="createJuncLeft()">Create junction</button>
+                    <button onmousedown="createCompLeft(this.parentElement.parentElement)">Create component</button>
+                    <button onmousedown="connectCompLeft(this.parentElement.parentElement)">Connect component</button>
+                    <button onmousedown="createJuncLeft(this.parentElement.parentElement)">Create junction</button>
                 </div>
                 <div class="add-component-panel add-component-right vertical-align">
-                    <button onmousedown="createCompRight()">Create component</button>
-                    <button onmousedown="connectCompRight()">Connect component</button>
-                    <button onmousedown="createJuncRight()">Create junction</button>
+                    <button onmousedown="createCompRight(this.parentElement.parentElement)">Create component</button>
+                    <button onmousedown="connectCompRight(this.parentElement.parentElement)">Connect component</button>
+                    <button onmousedown="createJuncRight(this.parentElement.parentElement)">Create junction</button>
                 </div>
 
             </div>

@@ -1,4 +1,4 @@
-//#region Class
+//#region UI Components
 
 class CircuitUIComponent {
 
@@ -14,22 +14,46 @@ class CircuitUIComponent {
         let elemType = element.getAttribute("data-circuit-component");
         if (elemType == "cell") {
             this.backendComponent = new Cell();
-        }
-        else if (elemType == "resistor") {
+        } else if (elemType == "resistor") {
             this.backendComponent = new Resistor();
         }
     }
 
+    // always on right side
     setHead(elem) {
         this.head = elem;
         this.backendComponent.head = elem.backendComponent;
     }
 
+    // always on left side
     setTail(elem) {
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
     }
-    
+
+    // UI helpers
+    getLeftAnchor() {
+        let offset = $(element).offset;
+        return new ComponentAnchor(offset.left, offset.top + this.element.offsetHeight / 2, true)
+    }
+    getRightAnchor() {
+        let offset = $(element).offset;
+        return new ComponentAnchor(offset.left + this.element.offsetWidth, offset.top + this.element.offsetHeight / 2, false)
+    }
+}
+
+// will act like a struct, but uses class as struct isn't in native javascript
+class ComponentAnchor {
+    left;
+    top;
+    // by default it is assumed it is the right anchor of the component
+    isHead = false;
+
+    constructor(left, top, isHead) {
+        this.left = left;
+        this.top = top;
+        this.isHead = isHead;
+    }
 }
 
 var allComponents = [];
@@ -47,7 +71,7 @@ function findComponentFromElem(elem) {
 // #region init draggables
 
 let draggables = Array.from(document.getElementsByClassName("draggable-base"));
-draggables.forEach(elem => elem.addEventListener('mousedown', function() {
+draggables.forEach(elem => elem.addEventListener('mousedown', function () {
     draggableBaseMouseDown(elem);
 }));
 
@@ -64,7 +88,9 @@ function draggableBaseMouseDown(elem) {
     elem.style.opacity = 0;
     currentDraggingBaseElem = elem;
 
-    clone.ondragstart = function() { return false; }
+    clone.ondragstart = function () {
+        return false;
+    }
 
     clone.classList.add("dragging");
     clone.classList.add("draggable");
@@ -75,7 +101,7 @@ function draggableBaseMouseDown(elem) {
     let offset = $(elem).offset();
 
     clone.style.top = offset.top + "px";
-    clone.style.left = offset.left  + "px";
+    clone.style.left = offset.left + "px";
 
     isDraggingBase = true;
     currentDraggingElem = clone;
@@ -93,7 +119,9 @@ function draggableMouseDown(elem) {
 
     currentDraggingElem = elem;
 
-    elem.ondragstart = function() { return false; }
+    elem.ondragstart = function () {
+        return false;
+    }
 
     elem.classList.add("dragging");
 
@@ -123,6 +151,14 @@ function onMouseMove(e) {
     }
 }
 
+function initDraggable(elem) {
+    // reads from this fixed var instead of the changing one
+    var x = elem;
+    elem.addEventListener('mousedown', function () {
+        draggableMouseDown(x)
+    });
+}
+
 function onMouseUp(e) {
     if (isDraggingBase) {
         isDraggingBase = false;
@@ -130,9 +166,8 @@ function onMouseUp(e) {
         document.getElementById("circuit-area").appendChild(currentDraggingElem);
         currentDraggingElem.classList.remove("dragging");
 
-        // reads from this fixed var instead of the changing one
-        var x = currentDraggingElem;
-        currentDraggingElem.addEventListener('mousedown', function() { draggableMouseDown(x)} );
+        initDraggable(currentDraggingElem);
+
         $(currentDraggingBaseElem).animate({
             opacity: "1"
         }, 200);
@@ -149,10 +184,55 @@ function onMouseUp(e) {
 
 //#region create components
 
+var cellBase = document.getElementById("cell-base");
+var resistorBase = document.getElementById("resistor-base");
+
+function cloneCellBase() {
+    let clone = cellBase.cloneNode(true);
+    clone.classList.remove("draggable-base");
+    clone.classList.add("draggable");
+
+    return clone;
+}
+
+function cloneResistorBase() {
+    let clone = resistorBase.cloneNode(true);
+    clone.classList.remove("draggable-base");
+    clone.classList.add("draggable");
+
+    return clone;
+}
+
+function updateCircuit() {
+
+}
+
+
 //#region left
 
-function createComponentLeft() {
-    
+function createCompLeft(elem) {
+    // for now just insert a resistor
+    let newComp = cloneResistorBase();
+
+    document.getElementById("circuit-area").appendChild(newComp);
+
+    newComp.style.top = elem.style.top;
+    newComp.style.left = (parseInt(elem.style.left, 10) - 300) + "px";
+
+    initDraggable(newComp);
+}
+
+
+function createCompRight(elem) {
+    // for now just insert a resistor
+    let newComp = cloneResistorBase();
+
+    document.getElementById("circuit-area").appendChild(newComp);
+
+    newComp.style.top = elem.style.top;
+    newComp.style.left = (parseInt(elem.style.left, 10) + 300) + "px";
+
+    initDraggable(newComp);
 }
 
 //#endregion
