@@ -64,9 +64,12 @@ html, body {
     left: 0;
 }
 
-.circuit-icon > .comp-circle-right {
-    position: absolute;
-    right: 0;
+.left-occupied > .comp-circle-left, .left-occupied > .add-component-left {
+    display: none !important;
+}
+
+.right-occupied > .comp-circle-right, .right-occupied > .add-component-right {
+    display: none !important;
 }
 
 .circuit-icon:hover > .add-component-panel {
@@ -175,7 +178,14 @@ html, body {
 
 /* #region wire styles */
 
+.circuit-wire {
+    position: absolute;
 
+    border-width: 8px;
+    border-style: solid;
+
+    transform: translate(-4px, -4px);
+}
 
 /* #endregion */
 

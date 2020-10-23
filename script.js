@@ -1,12 +1,20 @@
+/* jshint esversion:6 */
+
+var circuitArea = document.getElementById("circuit-area");
+
 //#region UI Components
 
 class CircuitUIComponent {
 
+    /*
     element;
     backendComponent;
-
     head;
     tail;
+
+    leftWire;
+    rightWire;
+    */
 
     constructor(element) {
         this.element = element;
@@ -20,39 +28,140 @@ class CircuitUIComponent {
     }
 
     // always on right side
-    setHead(elem) {
+    // silent refers to whether a wire should be added. usually declared when another element is calling this
+    setHead(elem, silent) {
         this.head = elem;
         this.backendComponent.head = elem.backendComponent;
+
+        this.element.classList.add("right-occupied");
+
+        if (!this.rightWire && !silent) {
+            let wire = new Wire(this, elem);
+            this.rightWire = wire;
+            elem.leftWire = wire;
+
+            elem.setTail(this, true);
+        }
+
+        this.reDrawWires();
+
+
     }
 
     // always on left side
-    setTail(elem) {
+    setTail(elem, silent) {
+
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
+
+        this.element.classList.add("left-occupied");
+
+        if (!this.leftWire && !silent) {
+            let wire = new Wire(elem, this);
+            this.leftWire = wire;
+            elem.rightWire = wire;
+
+            elem.setHead(this, true);
+        }
+
+        elem.head = this;
+
+
+        this.reDrawWires();
     }
 
     // UI helpers
     getLeftAnchor() {
-        let offset = $(element).offset;
-        return new ComponentAnchor(offset.left, offset.top + this.element.offsetHeight / 2, true)
+        let offset = $(this.element).offset();
+        return new ComponentAnchor(offset.left, offset.top + this.element.offsetHeight / 2, true);
     }
+
     getRightAnchor() {
-        let offset = $(element).offset;
-        return new ComponentAnchor(offset.left + this.element.offsetWidth, offset.top + this.element.offsetHeight / 2, false)
+        let offset = $(this.element).offset();
+        console.log(offset);
+        return new ComponentAnchor(offset.left + this.element.offsetWidth, offset.top + this.element.offsetHeight / 2, false);
+    }
+
+    reDrawWires() {
+        if (this.head) {
+            this.rightWire.reDrawWire();
+        }
+        if (this.tail) {
+            this.leftWire.reDrawWire();
+        }
     }
 }
 
 // will act like a struct, but uses class as struct isn't in native javascript
 class ComponentAnchor {
+
+    /*
     left;
     top;
     // by default it is assumed it is the right anchor of the component
     isHead = false;
+    */
 
     constructor(left, top, isHead) {
         this.left = left;
         this.top = top;
-        this.isHead = isHead;
+        this.isHead = isHead || false;
+    }
+}
+
+class Wire {
+    /* Properties:
+    wireElem
+    comp1
+    comp2
+    */
+
+    constructor(comp1, comp2) {
+        this.wireElem = document.createElement("div");
+        this.wireElem.classList.add("circuit-wire");
+        circuitArea.appendChild(this.wireElem);
+
+        this.comp1 = comp1;
+        this.comp2 = comp2;
+
+        this.reDrawWire();
+    }
+
+    reDrawWire() {
+
+        let anchor1 = this.comp1.getRightAnchor();
+        let anchor2 = this.comp2.getLeftAnchor();
+
+        // determine if the left anchor is below or above the right connector
+        // 0 = same height
+        // 1 = left is above
+        // 2 = left is below
+        let v_anchorDeltaIndex = 0;
+        // if they are perfectly aligned vertically
+        let h_anchorDeltaZero = anchor1.left == anchor2.left;
+
+        if (anchor1.top != anchor2.top) {
+            v_anchorDeltaIndex = (anchor1.top < anchor2.top) + 1;
+        }
+
+        if (v_anchorDeltaIndex == 0) {
+            this.wireElem.style.borderWidth = "8px 0 0 0";
+        }
+        else if (v_anchorDeltaIndex == 1) {
+            this.wireElem.style.borderWidth = "0 8px 8px 0";
+        }
+        else {
+            this.wireElem.style.borderWidth = "0 0 8px 8px";
+        }
+
+
+        // first position the wire
+        this.wireElem.style.left = Math.min(anchor1.left, anchor2.left) + "px";
+        this.wireElem.style.top = Math.min(anchor1.top, anchor2.top) + "px";
+
+        // now set the size of the wire
+        this.wireElem.style.width = Math.abs(anchor1.left - anchor2.left) + "px";
+        this.wireElem.style.height = Math.abs(anchor1.top - anchor2.top) + "px";
     }
 }
 
@@ -90,13 +199,13 @@ function draggableBaseMouseDown(elem) {
 
     clone.ondragstart = function () {
         return false;
-    }
+    };
 
     clone.classList.add("dragging");
     clone.classList.add("draggable");
     clone.classList.remove("draggable-base");
 
-    document.body.appendChild(clone);
+    circuitArea.appendChild(clone);
 
     let offset = $(elem).offset();
 
@@ -121,7 +230,7 @@ function draggableMouseDown(elem) {
 
     elem.ondragstart = function () {
         return false;
-    }
+    };
 
     elem.classList.add("dragging");
 
@@ -139,34 +248,48 @@ function draggableMouseDown(elem) {
 document.addEventListener('mousemove', onMouseMove);
 document.addEventListener('mouseup', onMouseUp);
 
+// store the cur dragging element's component class
+var currentDraggingElemComponent;
 
 function onMouseMove(e) {
     if (isDraggingBase || isDragging) {
+
+        if (!currentDraggingElemComponent) {
+            currentDraggingElemComponent = findComponentFromElem(currentDraggingElem);
+        }
+
         // move y value
         let topVal = parseInt(currentDraggingElem.style.top, 10) + e.movementY;
         currentDraggingElem.style.top = topVal + "px";
         // move x value
         let leftVal = parseInt(currentDraggingElem.style.left, 10) + e.movementX;
         currentDraggingElem.style.left = leftVal + "px";
+
+
+        if (isDragging) {
+            currentDraggingElemComponent.reDrawWires();
+        }
     }
 }
 
-function initDraggable(elem) {
+function initComponent(elem) {
     // reads from this fixed var instead of the changing one
     var x = elem;
     elem.addEventListener('mousedown', function () {
-        draggableMouseDown(x)
+        draggableMouseDown(x);
     });
+
+    allComponents.push(new CircuitUIComponent(elem));
 }
 
 function onMouseUp(e) {
     if (isDraggingBase) {
         isDraggingBase = false;
         // paste onto the drawing area
-        document.getElementById("circuit-area").appendChild(currentDraggingElem);
+        circuitArea.appendChild(currentDraggingElem);
         currentDraggingElem.classList.remove("dragging");
 
-        initDraggable(currentDraggingElem);
+        initComponent(currentDraggingElem);
 
         $(currentDraggingBaseElem).animate({
             opacity: "1"
@@ -174,6 +297,8 @@ function onMouseUp(e) {
     }
 
     if (isDragging) {
+        currentDraggingElemComponent = null;
+
         isDragging = false;
         currentDraggingElem.classList.remove("dragging");
         currentDraggingElem = null;
@@ -214,12 +339,14 @@ function createCompLeft(elem) {
     // for now just insert a resistor
     let newComp = cloneResistorBase();
 
-    document.getElementById("circuit-area").appendChild(newComp);
+    circuitArea.appendChild(newComp);
 
     newComp.style.top = elem.style.top;
     newComp.style.left = (parseInt(elem.style.left, 10) - 300) + "px";
 
-    initDraggable(newComp);
+    initComponent(newComp);
+
+    findComponentFromElem(elem).setTail(findComponentFromElem(newComp));
 }
 
 
@@ -227,12 +354,14 @@ function createCompRight(elem) {
     // for now just insert a resistor
     let newComp = cloneResistorBase();
 
-    document.getElementById("circuit-area").appendChild(newComp);
+    circuitArea.appendChild(newComp);
 
     newComp.style.top = elem.style.top;
     newComp.style.left = (parseInt(elem.style.left, 10) + 300) + "px";
 
-    initDraggable(newComp);
+    initComponent(newComp);
+
+    findComponentFromElem(elem).setHead(findComponentFromElem(newComp));
 }
 
 //#endregion
@@ -242,6 +371,7 @@ function createCompRight(elem) {
 //#endregion
 
 //#endregion
+
 
 //#region TEST
 // modelling after https://media.discordapp.net/attachments/212472977013342211/714479735018750093/unknown.png
