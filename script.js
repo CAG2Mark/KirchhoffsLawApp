@@ -2,6 +2,16 @@
 
 var circuitArea = document.getElementById("circuit-area");
 
+// helpers
+
+function removeFromArray(array, item) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === item) {
+            array.splice(i);
+        }
+    }
+}
+
 //#region UI Components
 
 class CircuitUIComponent {
@@ -31,11 +41,11 @@ class CircuitUIComponent {
     // silent refers to whether a wire should be added. usually declared when another element is calling this
     setHead(elem, silent) {
 
-                
+
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
             if (!silent) {
-                this.head.setHead(null, true);
+                this.head.setTail(null, true);
             }
             this.head = null;
             this.rightWire = null;
@@ -49,21 +59,23 @@ class CircuitUIComponent {
         this.element.classList.add("right-occupied");
 
         if (!this.rightWire && !silent) {
+
+            elem.setTail(this, true);
+
             let wire = new Wire(this, elem);
+
             this.rightWire = wire;
             elem.leftWire = wire;
 
-            elem.setTail(this, true);
+            this.reDrawWires();
         }
-
-        this.reDrawWires();
 
 
     }
 
     // always on left side
     setTail(elem, silent) {
-        
+
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
             if (!silent) {
@@ -81,14 +93,12 @@ class CircuitUIComponent {
         this.element.classList.add("left-occupied");
 
         if (!this.leftWire && !silent) {
+            elem.setHead(this, true);
             let wire = new Wire(elem, this);
             this.leftWire = wire;
             elem.rightWire = wire;
-
-            elem.setHead(this, true);
+            this.reDrawWires();
         }
-
-        this.reDrawWires();
     }
 
     // UI helpers
@@ -99,7 +109,6 @@ class CircuitUIComponent {
 
     getRightAnchor() {
         let offset = $(this.element).offset();
-        console.log(offset);
         return new ComponentAnchor(offset.left + this.element.offsetWidth, offset.top + this.element.offsetHeight / 2, false);
     }
 
@@ -160,35 +169,44 @@ class Wire {
         this.comp1 = comp1;
         this.comp2 = comp2;
 
-        if (comp1.head === comp2.tail) {
-            this.wireType = wireTypes.leftToRight;
-        } else if (comp1.tail === comp2.head) {
-            this.wireType = wireTypes.rightToLeft;
-        } else if (comp1.tail === comp2.tail) {
-            this.wireType = wireTypes.leftToLeft;
-        } else if (comp1.head === comp2.head) {
-            this.wireType = wireTypes.rightToRight;
-        } else {
-            console.log("Undefined connection!");
-
-        }
+        this.init();
 
         this.reDrawWire();
     }
 
+    init() {
+        if (this.comp1.head === this.comp2 && this.comp2.tail === this.comp1) {
+            this.wireType = wireTypes.leftToRight;
+        } else if (this.comp1.tail === this.comp2 && this.comp2.head === this.comp1) {
+            this.wireType = wireTypes.rightToLeft;
+        } else if (this.comp1.tail === this.comp2 && this.comp2.tail === this.comp1) {
+            this.wireType = wireTypes.leftToLeft;
+        } else if (this.comp1.head === this.comp2 && this.comp2.head === this.comp1) {
+            this.wireType = wireTypes.rightToRight;
+        } else {
+            console.log(this.comp1);
+            console.log(this.comp2);
+
+            console.log("Undefined connection!");
+
+        }
+    }
+
     reDrawWire() {
+
+        if (!this.wireType) this.init();
 
         let anchor1;
         let anchor2;
 
         switch (this.wireType) {
             case wireTypes.leftToRight:
-                anchor1 = this.comp1.getLeftAnchor();
-                anchor2 = this.comp2.getRightAnchor();
-                break;
-            case wireTypes.rightToLeft:
                 anchor1 = this.comp1.getRightAnchor();
                 anchor2 = this.comp2.getLeftAnchor();
+                break;
+            case wireTypes.rightToLeft:
+                anchor1 = this.comp1.getLeftAnchor();
+                anchor2 = this.comp2.getRightAnchor();
                 break;
             case wireTypes.leftToLeft:
                 anchor1 = this.comp1.getLeftAnchor();
@@ -200,13 +218,13 @@ class Wire {
                 break;
 
         }
-        
+
         // determine if the left anchor is below or above the right connector
         // 0 = same height
         // 1 = left is above
         // 2 = left is below
         let v_anchorDeltaIndex = 0;
-        
+
         // if they are perfectly aligned vertically
         let h_anchorDeltaZero = anchor1.left == anchor2.left;
 
@@ -406,35 +424,83 @@ function updateCircuit() {
 
 }
 
-// Todo: fix adding components to left and right
-
-
 //#region left
 
 function createCompLeft(elem) {
     // for now just insert a resistor
-    let newComp = cloneResistorBase();
+    let newElem = cloneResistorBase();
 
-    circuitArea.appendChild(newComp);
+    circuitArea.appendChild(newElem);
 
-    newComp.style.top = elem.style.top;
-    newComp.style.left = (parseInt(elem.style.left, 10) - 300) + "px";
+    newElem.style.top = elem.style.top;
+    newElem.style.left = (parseInt(elem.style.left, 10) - 300) + "px";
 
-    findComponentFromElem(elem).setTail(initComponent(newComp));
+    findComponentFromElem(elem).setTail(initComponent(newElem));
 
 }
 
 
 function createCompRight(elem) {
     // for now just insert a resistor
-    let newComp = cloneResistorBase();
+    let newElem = cloneResistorBase();
 
-    circuitArea.appendChild(newComp);
+    circuitArea.appendChild(newElem);
 
-    newComp.style.top = elem.style.top;
-    newComp.style.left = (parseInt(elem.style.left, 10) + 300) + "px";
+    newElem.style.top = elem.style.top;
+    newElem.style.left = (parseInt(elem.style.left, 10) + 300) + "px";
 
-    findComponentFromElem(elem).setHead(initComponent(newComp));
+    findComponentFromElem(elem).setHead(initComponent(newElem));
+}
+
+// helper
+// elem param refers to the element that should be excluded
+function findFreeNodes(elem) {
+    let allElems = Array.from(circuitArea.getElementsByClassName("circuit-icon"));
+
+    if (elem) removeFromArray(allElems, elem);
+
+    let allNodes = [];
+    allElems.forEach(o => {
+        // left
+        let nodesLeft = o.getElementsByClassName("comp-circle-left");
+
+        if (nodesLeft[0]) {
+            allNodes.push({
+                element: nodesLeft[0],
+                parent: o,
+                isLeft: true
+            })
+        }
+
+        // right
+        let nodesRight = o.getElementsByClassName("comp-circle-right");
+        if (nodesRight[0]) {
+            allNodes.push({
+                element: nodesRight[0],
+                parent: o,
+                isLeft: false
+            })
+        }
+    });
+
+    return allNodes;
+}
+
+function enterConnectMode(elem) {
+    let nodes = findFreeNodes(elem);
+    nodes.forEach(node => {
+        node.element.style.fill = "red";
+    });
+}
+
+function connectCompLeft(elem) {
+    // procedure: find all unoccipued nodes, unhighlight them, and make them clickable
+    enterConnectMode(elem);
+}
+
+function connectCompRight(elem) {
+    // procedure: find all unoccipued nodes, unhighlight them, and make them clickable
+    enterConnectMode(elem);
 }
 
 //#endregion
