@@ -14,10 +14,10 @@
 <body>
 
     <div id="circuit-area">
-    
+
     </div>
     <div id="toolbar">
-        <div id="toolbar-wrapper">
+        <div class="toolbar-wrapper" id="toolbar-main">
             <div class="draggable-base circuit-icon" data-circuit-component="cell" id="cell-base">
                 <img src="Icons/Cell.svg" class="circuit-icon" id="cell-icon">
                 <svg width="16" height="16" class="comp-circle-left vertical-align">
@@ -58,6 +58,13 @@
 
             </div>
             <button id="compute-button">Compute</button>
+        </div>
+
+        <div class="toolbar-wrapper toolbar-overlay" id="connectmode-toolbar">
+            <div class="wrapper">
+                <p id="connectmode-text">Select a node to connect</p>
+                <img src="Icons/close.png" alt="" onclick="exitConnectMode()">
+            </div>
         </div>
     </div>
 

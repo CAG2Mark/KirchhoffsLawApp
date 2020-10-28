@@ -7,9 +7,39 @@ var circuitArea = document.getElementById("circuit-area");
 function removeFromArray(array, item) {
     for (var i = 0; i < array.length; i++) {
         if (array[i] === item) {
-            array.splice(i);
+            array.splice(i, 1);
         }
     }
+}
+
+
+var currentToolbarOverlay;
+
+function showToolbarOverlay(overlay) {
+
+    if (currentToolbarOverlay)
+        hideToolbarOverlay();
+
+    setTimeout(() => {
+
+        overlay.style.display = "block";
+
+        setTimeout(() => {
+            overlay.style.opacity = "1";
+
+            currentToolbarOverlay = overlay;
+        }, 1);
+
+    }, 1);
+
+}
+
+function hideToolbarOverlay() {
+    currentToolbarOverlay.style.opacity = "0";
+    setTimeout(() => {
+        currentToolbarOverlay.style.display = "none";
+        currentToolbarOverlay = null;
+    }, 200);
 }
 
 //#region UI Components
@@ -39,19 +69,32 @@ class CircuitUIComponent {
 
     // always on right side
     // silent refers to whether a wire should be added. usually declared when another element is calling this
-    setHead(elem, silent) {
-
+    setHead(elem, silent, isOrthodox) {
 
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
+
+            // orthodox connections refer to left ro right or right to left connections
+            isOrthodox = this.head.tail === this;
+
             if (!silent) {
-                this.head.setTail(null, true);
+                if (isOrthodox)
+                    this.head.setTail(null, true);
+                else {
+                    this.head.setHead(null, true);
+                }
             }
             this.head = null;
             this.rightWire = null;
             this.backendComponent.head = null;
             this.element.classList.remove("right-occupied");
+
+            return;
         }
+
+        // assume is orthodox connection unless otherwise stated
+        if (isOrthodox === undefined) isOrthodox = true;
+
 
         this.head = elem;
         this.backendComponent.head = elem.backendComponent;
@@ -60,32 +103,62 @@ class CircuitUIComponent {
 
         if (!this.rightWire && !silent) {
 
-            elem.setTail(this, true);
+            if (isOrthodox) {
+                elem.setTail(this, true);
+            } else {
+                elem.setHead(this, true)
+            }
 
             let wire = new Wire(this, elem);
 
             this.rightWire = wire;
-            elem.leftWire = wire;
+
+
+            if (isOrthodox) {
+                elem.leftWire = wire;
+            } else {
+                elem.rightWire = wire;
+            }
 
             this.reDrawWires();
         }
+    }
 
+    setHeadNode(node, silent) {
+        let parent = findComponentFromElem(node.parent);
 
+        if (node.isLeft) {
+            this.setHead(parent, silent);
+        } else {
+            this.setHead(parent, silent, false)
+        }
     }
 
     // always on left side
-    setTail(elem, silent) {
+    setTail(elem, silent, isOrthodox) {
 
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
+            // orthodox connections refer to left ro right or right to left connections
+            isOrthodox = this.tail.head === this;
+
             if (!silent) {
-                this.tail.setHead(null, true);
+                if (isOrthodox)
+                    this.head.setHead(null, true);
+                else {
+                    this.head.setTail(null, true);
+                }
             }
             this.tail = null;
             this.leftWire = null;
             this.backendComponent.tail = null;
             this.element.classList.remove("left-occupied");
+
+            return;
         }
+
+        // assume is orthodox connection unless otherwise stated
+        if (isOrthodox === undefined) isOrthodox = true;
 
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
@@ -93,13 +166,36 @@ class CircuitUIComponent {
         this.element.classList.add("left-occupied");
 
         if (!this.leftWire && !silent) {
-            elem.setHead(this, true);
-            let wire = new Wire(elem, this);
+
+            if (isOrthodox) {
+                elem.setHead(this, true);
+            } else {
+                elem.setTail(this, true)
+            }
+
+            let wire = new Wire(this, elem);
+
             this.leftWire = wire;
-            elem.rightWire = wire;
-            this.reDrawWires();
+
+
+            if (isOrthodox) {
+                elem.rightWire = wire;
+            } else {
+                elem.leftWire = wire;
+            }
         }
     }
+
+    setTailNode(node, silent) {
+        let parent = findComponentFromElem(node.parent);
+
+        if (!node.isLeft) {
+            this.setTail(parent, silent);
+        } else {
+            this.setTail(parent, silent, false)
+        }
+    }
+
 
     // UI helpers
     getLeftAnchor() {
@@ -153,6 +249,8 @@ const wireTypes = {
     rightToRight: 'righttoright'
 }
 
+const thickness = "7px";
+
 class Wire {
     /* Properties:
     wireElem
@@ -205,8 +303,8 @@ class Wire {
                 anchor2 = this.comp2.getLeftAnchor();
                 break;
             case wireTypes.rightToLeft:
-                anchor1 = this.comp1.getLeftAnchor();
-                anchor2 = this.comp2.getRightAnchor();
+                anchor2 = this.comp1.getLeftAnchor();
+                anchor1 = this.comp2.getRightAnchor();
                 break;
             case wireTypes.leftToLeft:
                 anchor1 = this.comp1.getLeftAnchor();
@@ -219,33 +317,75 @@ class Wire {
 
         }
 
-        // determine if the left anchor is below or above the right connector
-        // 0 = same height
-        // 1 = left is above
-        // 2 = left is below
-        let v_anchorDeltaIndex = 0;
-
-        // if they are perfectly aligned vertically
-        let h_anchorDeltaZero = anchor1.left == anchor2.left;
-
-        if (anchor1.top != anchor2.top) {
-            v_anchorDeltaIndex = (anchor1.top < anchor2.top) + 1;
-        }
-
-        if (v_anchorDeltaIndex <= 1) {
-            this.wireElem.style.borderWidth = "0 7px 7px 0";
-        } else {
-            this.wireElem.style.borderWidth = "0 0 7px 7px";
-        }
-
-
         // first position the wire
         this.wireElem.style.left = Math.min(anchor1.left, anchor2.left) + "px";
         this.wireElem.style.top = Math.min(anchor1.top, anchor2.top) + "px";
 
         // now set the size of the wire
-        this.wireElem.style.width = (Math.abs(anchor1.left - anchor2.left) + 1) + "px";
+        this.wireElem.style.width = Math.abs(anchor1.left - anchor2.left - 1) + "px";
         this.wireElem.style.height = Math.abs(anchor1.top - anchor2.top) + "px";
+
+        // cases for these the types of connections
+        if (this.wireType == wireTypes.leftToRight || this.wireType == wireTypes.rightToLeft) {
+
+            // determine if the left anchor is below or above the right connector
+            // 0 = same height
+            // 1 = left is above
+            // 2 = left is below
+            let v_anchorDeltaIndex = 0;
+
+            // if they are perfectly aligned vertically
+            let h_anchorDeltaZero = anchor1.left == anchor2.left;
+
+            if (anchor1.top != anchor2.top) {
+                v_anchorDeltaIndex = (anchor1.top < anchor2.top) + 1;
+            }
+
+            if (v_anchorDeltaIndex <= 1) {
+                this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+            } else {
+                this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+            }
+        } else if (this.wireType == wireTypes.rightToRight) {
+            // two variables, whether or not the first is above the other, and whether or not the first is left of the other
+
+            let isLeft = anchor1.left < anchor2.left;
+            let isBelow = anchor1.top < anchor2.top;
+
+            if (isLeft) {
+                if (isBelow)
+                    this.wireElem.style.borderWidth = `${thickness} ${thickness} 0 0`;
+                else {
+                    this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+                }
+            } else {
+                if (isBelow)
+                    this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+                else {
+                    this.wireElem.style.borderWidth = `${thickness} ${thickness} 0 0`;
+                }
+            }
+        } else {
+            // two variables, whether or not the first is above the other, and whether or not the first is left of the other
+
+            let isLeft = anchor1.left < anchor2.left;
+            let isBelow = anchor1.top < anchor2.top;
+
+            if (!isLeft) {
+                if (isBelow)
+                    this.wireElem.style.borderWidth = `${thickness} 0 0 ${thickness}`;
+                else {
+                    this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+                }
+            } else {
+                if (isBelow)
+                    this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+                else {
+                    this.wireElem.style.borderWidth = `${thickness} 0 0 ${thickness}`;
+                }
+            }
+        }
+
     }
 }
 
@@ -314,6 +454,8 @@ var currentDraggingBaseElem;
 
 function draggableMouseDown(elem) {
 
+    if (isConnectMode) return;
+
     currentDraggingElem = elem;
 
     elem.ondragstart = function () {
@@ -340,6 +482,9 @@ document.addEventListener('mouseup', onMouseUp);
 var currentDraggingElemComponent;
 
 function onMouseMove(e) {
+
+    if (isConnectMode) return;
+
     if (isDraggingBase || isDragging) {
 
         if (!currentDraggingElemComponent) {
@@ -375,6 +520,9 @@ function initComponent(elem) {
 }
 
 function onMouseUp(e) {
+
+    if (isConnectMode) return;
+
     if (isDraggingBase) {
         isDraggingBase = false;
         // paste onto the drawing area
@@ -420,10 +568,6 @@ function cloneResistorBase() {
     return clone;
 }
 
-function updateCircuit() {
-
-}
-
 //#region left
 
 function createCompLeft(elem) {
@@ -458,6 +602,10 @@ function findFreeNodes(elem) {
     let allElems = Array.from(circuitArea.getElementsByClassName("circuit-icon"));
 
     if (elem) removeFromArray(allElems, elem);
+    // also remove the connected nodes of the element
+    let comp = findComponentFromElem(elem);
+    if (comp.head) removeFromArray(allElems, comp.head.element)
+    if (comp.tail) removeFromArray(allElems, comp.tail.element)
 
     let allNodes = [];
     allElems.forEach(o => {
@@ -486,19 +634,65 @@ function findFreeNodes(elem) {
     return allNodes;
 }
 
+
+var isConnectMode = false;
+var connectingLeft = false;
+var connectModeElement;
+
+var connectModeNodes;
+
+function connectNode(node, exitMode) {
+
+    let connectModeComponent = findComponentFromElem(connectModeElement);
+
+    if (connectingLeft) {
+        connectModeComponent.setTailNode(node);
+    } else {
+        connectModeComponent.setHeadNode(node);
+    }
+
+    if (exitMode) {
+        exitConnectMode();
+    }
+}
+
 function enterConnectMode(elem) {
+    connectModeElement = elem;
+
     let nodes = findFreeNodes(elem);
     nodes.forEach(node => {
-        node.element.style.fill = "red";
+        node.element.classList.add("comp-circle-active");
+        node.element.onclick = () => connectNode(node, true);
     });
+
+    isConnectMode = true;
+    connectModeNodes = nodes;
+
+    circuitArea.classList.add("connect-mode");
+
+    showToolbarOverlay(document.getElementById("connectmode-toolbar"));
+}
+
+function exitConnectMode() {
+    connectModeNodes.forEach(node => {
+        node.element.classList.remove("comp-circle-active");
+        node.element.onclick = null;
+    })
+    isConnectMode = false;
+
+    circuitArea.classList.remove("connect-mode");
+
+    hideToolbarOverlay();
 }
 
 function connectCompLeft(elem) {
+    connectingLeft = true;
     // procedure: find all unoccipued nodes, unhighlight them, and make them clickable
     enterConnectMode(elem);
 }
 
 function connectCompRight(elem) {
+    connectingLeft = false;
     // procedure: find all unoccipued nodes, unhighlight them, and make them clickable
     enterConnectMode(elem);
 }
