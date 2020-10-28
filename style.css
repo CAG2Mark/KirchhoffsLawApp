@@ -42,7 +42,7 @@ html, body {
 }
 
 .circuit-icon {
-    height: 80px;
+    height: 85px;
     width: auto;
     cursor: move;
 
@@ -62,6 +62,12 @@ html, body {
 .circuit-icon > .comp-circle-left {
     position: absolute;
     left: 0;
+}
+
+
+.circuit-icon > .comp-circle-right {
+    position: absolute;
+    right: 0;
 }
 
 .left-occupied > .comp-circle-left, .left-occupied > .add-component-left {

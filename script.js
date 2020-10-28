@@ -30,6 +30,19 @@ class CircuitUIComponent {
     // always on right side
     // silent refers to whether a wire should be added. usually declared when another element is calling this
     setHead(elem, silent) {
+
+                
+        // if elem is null, assume that its tail is being deleted
+        if (!elem) {
+            if (!silent) {
+                this.head.setHead(null, true);
+            }
+            this.head = null;
+            this.rightWire = null;
+            this.backendComponent.head = null;
+            this.element.classList.remove("right-occupied");
+        }
+
         this.head = elem;
         this.backendComponent.head = elem.backendComponent;
 
@@ -50,6 +63,17 @@ class CircuitUIComponent {
 
     // always on left side
     setTail(elem, silent) {
+        
+        // if elem is null, assume that its tail is being deleted
+        if (!elem) {
+            if (!silent) {
+                this.tail.setHead(null, true);
+            }
+            this.tail = null;
+            this.leftWire = null;
+            this.backendComponent.tail = null;
+            this.element.classList.remove("left-occupied");
+        }
 
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
@@ -63,9 +87,6 @@ class CircuitUIComponent {
 
             elem.setHead(this, true);
         }
-
-        elem.head = this;
-
 
         this.reDrawWires();
     }
@@ -90,6 +111,12 @@ class CircuitUIComponent {
             this.leftWire.reDrawWire();
         }
     }
+
+    delete() {
+        circuitArea.removeChild(this.element);
+        this.setHead(null);
+        this.setTail(null);
+    }
 }
 
 // will act like a struct, but uses class as struct isn't in native javascript
@@ -109,11 +136,20 @@ class ComponentAnchor {
     }
 }
 
+
+const wireTypes = {
+    leftToRight: 'lefttoright',
+    rightToLeft: 'righttoleft',
+    leftToLeft: 'lefttoleft',
+    rightToRight: 'righttoright'
+}
+
 class Wire {
     /* Properties:
     wireElem
     comp1
     comp2
+    wireType
     */
 
     constructor(comp1, comp2) {
@@ -124,19 +160,53 @@ class Wire {
         this.comp1 = comp1;
         this.comp2 = comp2;
 
+        if (comp1.head === comp2.tail) {
+            this.wireType = wireTypes.leftToRight;
+        } else if (comp1.tail === comp2.head) {
+            this.wireType = wireTypes.rightToLeft;
+        } else if (comp1.tail === comp2.tail) {
+            this.wireType = wireTypes.leftToLeft;
+        } else if (comp1.head === comp2.head) {
+            this.wireType = wireTypes.rightToRight;
+        } else {
+            console.log("Undefined connection!");
+
+        }
+
         this.reDrawWire();
     }
 
     reDrawWire() {
 
-        let anchor1 = this.comp1.getRightAnchor();
-        let anchor2 = this.comp2.getLeftAnchor();
+        let anchor1;
+        let anchor2;
 
+        switch (this.wireType) {
+            case wireTypes.leftToRight:
+                anchor1 = this.comp1.getLeftAnchor();
+                anchor2 = this.comp2.getRightAnchor();
+                break;
+            case wireTypes.rightToLeft:
+                anchor1 = this.comp1.getRightAnchor();
+                anchor2 = this.comp2.getLeftAnchor();
+                break;
+            case wireTypes.leftToLeft:
+                anchor1 = this.comp1.getLeftAnchor();
+                anchor2 = this.comp2.getLeftAnchor();
+                break;
+            case wireTypes.rightToRight:
+                anchor1 = this.comp1.getRightAnchor();
+                anchor2 = this.comp2.getRightAnchor();
+                break;
+
+        }
+        
         // determine if the left anchor is below or above the right connector
         // 0 = same height
         // 1 = left is above
         // 2 = left is below
         let v_anchorDeltaIndex = 0;
+        
         // if they are perfectly aligned vertically
         let h_anchorDeltaZero = anchor1.left == anchor2.left;
 
@@ -144,14 +214,10 @@ class Wire {
             v_anchorDeltaIndex = (anchor1.top < anchor2.top) + 1;
         }
 
-        if (v_anchorDeltaIndex == 0) {
-            this.wireElem.style.borderWidth = "8px 0 0 0";
-        }
-        else if (v_anchorDeltaIndex == 1) {
-            this.wireElem.style.borderWidth = "0 8px 8px 0";
-        }
-        else {
-            this.wireElem.style.borderWidth = "0 0 8px 8px";
+        if (v_anchorDeltaIndex <= 1) {
+            this.wireElem.style.borderWidth = "0 7px 7px 0";
+        } else {
+            this.wireElem.style.borderWidth = "0 0 7px 7px";
         }
 
 
@@ -160,7 +226,7 @@ class Wire {
         this.wireElem.style.top = Math.min(anchor1.top, anchor2.top) + "px";
 
         // now set the size of the wire
-        this.wireElem.style.width = Math.abs(anchor1.left - anchor2.left) + "px";
+        this.wireElem.style.width = (Math.abs(anchor1.left - anchor2.left) + 1) + "px";
         this.wireElem.style.height = Math.abs(anchor1.top - anchor2.top) + "px";
     }
 }
@@ -196,6 +262,10 @@ function draggableBaseMouseDown(elem) {
     // hide item while dragging and make it reappear after
     elem.style.opacity = 0;
     currentDraggingBaseElem = elem;
+
+    elem.ondragstart = function () {
+        return false;
+    };
 
     clone.ondragstart = function () {
         return false;
@@ -279,7 +349,11 @@ function initComponent(elem) {
         draggableMouseDown(x);
     });
 
-    allComponents.push(new CircuitUIComponent(elem));
+    let newComp = new CircuitUIComponent(elem);
+
+    allComponents.push(newComp);
+
+    return newComp;
 }
 
 function onMouseUp(e) {
@@ -332,6 +406,8 @@ function updateCircuit() {
 
 }
 
+// Todo: fix adding components to left and right
+
 
 //#region left
 
@@ -344,9 +420,8 @@ function createCompLeft(elem) {
     newComp.style.top = elem.style.top;
     newComp.style.left = (parseInt(elem.style.left, 10) - 300) + "px";
 
-    initComponent(newComp);
+    findComponentFromElem(elem).setTail(initComponent(newComp));
 
-    findComponentFromElem(elem).setTail(findComponentFromElem(newComp));
 }
 
 
@@ -359,9 +434,7 @@ function createCompRight(elem) {
     newComp.style.top = elem.style.top;
     newComp.style.left = (parseInt(elem.style.left, 10) + 300) + "px";
 
-    initComponent(newComp);
-
-    findComponentFromElem(elem).setHead(findComponentFromElem(newComp));
+    findComponentFromElem(elem).setHead(initComponent(newComp));
 }
 
 //#endregion

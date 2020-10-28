@@ -1,6 +1,13 @@
 // ASSUME CONVENTIONAL CIRCUITS
 // CURRENT FLOWS FROM +ve TO -ve
 //#region helpers
+
+function isNumeric(str) {
+    if (typeof str != "string") return false // we only process strings!  
+    return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+        !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+}
+
 function arrIncludes(array, obj) {
     for (var i = 0; i < array.length; i++) {
         if (array[i] === obj)
@@ -8,6 +15,7 @@ function arrIncludes(array, obj) {
     }
     return false;
 }
+
 function arr2DIncludes(array, obj) {
     for (var i = 0; i < array.length; i++) {
         if (arrEqual(array[i], obj))
@@ -15,6 +23,7 @@ function arr2DIncludes(array, obj) {
     }
     return false;
 }
+
 function loopsInclude(loops, loop) {
     for (var i = 0; i < loops.length; i++) {
         if (loopsEqual(loops[i], loop))
@@ -22,6 +31,7 @@ function loopsInclude(loops, loop) {
     }
     return false;
 }
+
 function loopsEqual(loop1, loop2) {
     if (loop1.segments.length != loop2.segments.length)
         return false;
@@ -41,6 +51,7 @@ function loopsEqual(loop1, loop2) {
     }
     return true;
 }
+
 function arrRemove(ogArr, obj) {
     let array = [...ogArr];
     for (var i = 0; i < array.length; i++) {
@@ -62,6 +73,7 @@ function arrEqual(_arr1, _arr2) {
     }
     return true;
 }
+
 function segmentsEqual(seg1, seg2) {
     if (seg1.components.length != seg2.components.length)
         return false;
@@ -84,6 +96,7 @@ function segmentsEqual(seg1, seg2) {
 //#endregion
 // for generating component ids
 var curIdNo = 0;
+
 function getId() {
     curIdNo++;
     return curIdNo;
@@ -122,8 +135,8 @@ class Cell {
             negative = !negative;
         }
         return (
-        // negative sign
-        negative ? "-" : "") +
+                // negative sign
+                negative ? "-" : "") +
             // variable or number
             (this.emf == null ? this.compId : this.emf.toString());
     }
@@ -143,18 +156,15 @@ class Resistor {
     constructor() {
         this.compId = "res" + getId();
     }
-    approachFrom(component) {
-    }
-    toNextComponent(previousComponent) { }
+    approachFrom(component) {}
+    toNextComponent(previousComponent) {}
     getNextComponent(previousComponent) {
         return (previousComponent === this.tail) ? this.head : this.tail;
     }
 }
 class Junction {
-    approachFrom(component) {
-    }
-    toNextComponent(reviousComponent) {
-    }
+    approachFrom(component) {}
+    toNextComponent(reviousComponent) {}
     getNextComponent(previousComponent) {
         return null;
     }
@@ -253,8 +263,7 @@ class Circuit {
                     foundLoops.push(newLoop);
                 }
             });
-        }
-        ;
+        };
         return foundLoops;
     }
     // recursive function to find all the branches possible
@@ -264,15 +273,13 @@ class Circuit {
         let foundSegments = Circuit.findSegmentsFromJunction(startJunc, segments);
         if (foundSegments.length == 0) {
             return null;
-        }
-        ;
+        };
         let found = [];
         foundSegments.forEach(foundSegment => {
             // BASE CASE. if it has succesfully returned to the end junction then it was successful.
             if (arrIncludes(foundSegment.getJunctionIds(), endJunc.id)) {
                 found.push([foundSegment]);
-            }
-            else {
+            } else {
                 // Copy the working segments and remove the current found segment.
                 // This means that there will be no paths where one loop crosses the same segment twice.
                 let workingSegments = [...segments];
@@ -369,14 +376,12 @@ class Loop {
                     if (breakFlag)
                         break;
                 }
-            }
-            else {
+            } else {
                 // find the current segment
                 let curSegment = findParentSegment(curComponent, this.segments);
                 if (curComponent instanceof Cell) {
                     law2Expressions.push(curComponent.getDeltaEmfEquation(curSegment, curJunction));
-                }
-                else {
+                } else {
                     let eqns = generatePdEquation(curSegment, curComponent, curJunction);
                     law2Expressions.push(eqns[0][0]);
                     // add vars
@@ -408,9 +413,12 @@ class Loop {
             law1Equations.push(equation);
         });
         //#endregion
-        return [[law2Equation], law1Equations, variables];
+        return [
+            [law2Equation], law1Equations, variables
+        ];
     }
 }
+
 function findParentSegment(componentToFind, segments) {
     for (var i = 0; i < segments.length; i++) {
         let seg = segments[i];
@@ -434,10 +442,16 @@ function generatePdEquation(segment, comp, approachingJunction) {
     let variables = [];
     if (segment.current == null)
         variables.push(segment.compId);
+    else if (!isNumeric(segment.current))
+        variables.push(segment.current);
+
     if (comp.resistance == null)
         variables.push(comp.compId + resistanceSuffix);
-    return [["((" + curStr + ") * (" + resStr + "))"], variables];
+    return [
+        ["((" + curStr + ") * (" + resStr + "))"], variables
+    ];
 }
+
 function generateResistanceEquation(segment, comp) {
     let curStr = segment.current == null ? segment.compId : segment.current.toString();
     let pdStr = comp.pd == null ? segment.compId + pdSuffix : comp.pd.toString();
@@ -462,8 +476,7 @@ class Segment {
         let isNegative = outputJunction === this.startJunction;
         if (this.current == null) {
             return (isNegative ? "-" : "") + this.compId;
-        }
-        else {
+        } else {
             return ((isNegative ? -1 : 1) * this.current).toString();
         }
     }
