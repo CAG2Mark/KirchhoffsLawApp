@@ -39,6 +39,7 @@ function showToolbarOverlay(overlay) {
         }, 20);
 
     }, 1);
+    
 
 }
 
