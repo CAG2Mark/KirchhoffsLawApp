@@ -1,6 +1,7 @@
 /* jshint esversion:6 */
 
-var circuitArea = document.getElementById("circuit-area");
+const circuitArea = document.getElementById("circuit-area");
+const toolbar = document.getElementById("toolbar");
 
 // helpers
 
@@ -12,6 +13,13 @@ function removeFromArray(array, item) {
     }
 }
 
+document.body.addEventListener('keydown', (e) => {
+    if (e.key == "Escape") {
+        if (isConnectMode) {
+            exitConnectMode();
+        }
+    }
+})
 
 var currentToolbarOverlay;
 
@@ -28,7 +36,7 @@ function showToolbarOverlay(overlay) {
             overlay.style.opacity = "1";
 
             currentToolbarOverlay = overlay;
-        }, 1);
+        }, 20);
 
     }, 1);
 
@@ -84,6 +92,9 @@ class CircuitUIComponent {
                     this.head.setHead(null, true);
                 }
             }
+
+            this.rightWire.delete();
+
             this.head = null;
             this.rightWire = null;
             this.backendComponent.head = null;
@@ -144,11 +155,14 @@ class CircuitUIComponent {
 
             if (!silent) {
                 if (isOrthodox)
-                    this.head.setHead(null, true);
+                    this.tail.setHead(null, true);
                 else {
-                    this.head.setTail(null, true);
+                    this.tail.setTail(null, true);
                 }
             }
+
+            this.leftWire.delete();
+
             this.tail = null;
             this.leftWire = null;
             this.backendComponent.tail = null;
@@ -219,8 +233,10 @@ class CircuitUIComponent {
 
     delete() {
         circuitArea.removeChild(this.element);
-        this.setHead(null);
-        this.setTail(null);
+        if (this.head)
+            this.setHead(null);
+        if (this.tail)
+            this.setTail(null);
     }
 }
 
@@ -263,6 +279,7 @@ class Wire {
         this.wireElem = document.createElement("div");
         this.wireElem.classList.add("circuit-wire");
         circuitArea.appendChild(this.wireElem);
+        this.wireElem.style.opacity = 1;
 
         this.comp1 = comp1;
         this.comp2 = comp2;
@@ -270,6 +287,8 @@ class Wire {
         this.init();
 
         this.reDrawWire();
+
+        this.isDeleted = false;
     }
 
     init() {
@@ -287,6 +306,17 @@ class Wire {
 
             console.log("Undefined connection!");
 
+        }
+    }
+
+    delete() {
+        if (!this.isDeleted) {
+            this.wireElem.style.opacity = 0;
+            this.isDeleted = true;
+
+            setTimeout(() => {
+                circuitArea.removeChild(this.wireElem);
+            }, 150);
         }
     }
 
@@ -441,6 +471,8 @@ function draggableBaseMouseDown(elem) {
     clone.style.left = offset.left + "px";
 
     isDraggingBase = true;
+    enterDragMode();
+
     currentDraggingElem = clone;
 
     // prevent native drag drop events
@@ -466,10 +498,21 @@ function draggableMouseDown(elem) {
 
     isDragging = true;
 
+    enterDragMode();
+
     // prevent native drag drop events
 
     // prevent native drag drop events
 }
+
+function enterDragMode() {
+    showToolbarOverlay(document.getElementById("delete-toolbar"));
+}
+
+function exitDragMode() {
+    hideToolbarOverlay();
+}
+
 
 //#endregion
 
@@ -480,6 +523,19 @@ document.addEventListener('mouseup', onMouseUp);
 
 // store the cur dragging element's component class
 var currentDraggingElemComponent;
+
+var mouseX;
+var mouseY;
+
+const deleteToolbar = document.getElementById("delete-toolbar");
+
+function isInToolbarArea() {
+    let pos = mouseY;
+    let h = toolbar.getBoundingClientRect().height;
+    let thresh = document.body.scrollHeight;
+
+    return pos >= thresh - h;
+}
 
 function onMouseMove(e) {
 
@@ -502,6 +558,15 @@ function onMouseMove(e) {
         if (isDragging) {
             currentDraggingElemComponent.reDrawWires();
         }
+
+        mouseX = e.pageX;
+        mouseY = e.pageY;
+    }
+
+    if (isInToolbarArea()) {
+        deleteToolbar.classList.add("delete-toolbar-hover");
+    } else {
+        deleteToolbar.classList.remove("delete-toolbar-hover");
     }
 }
 
@@ -524,12 +589,17 @@ function onMouseUp(e) {
     if (isConnectMode) return;
 
     if (isDraggingBase) {
-        isDraggingBase = false;
-        // paste onto the drawing area
-        circuitArea.appendChild(currentDraggingElem);
-        currentDraggingElem.classList.remove("dragging");
 
-        initComponent(currentDraggingElem);
+        if (isInToolbarArea()) {
+            circuitArea.removeChild(currentDraggingElem);
+        } else {
+            isDraggingBase = false;
+            // paste onto the drawing area
+            circuitArea.appendChild(currentDraggingElem);
+            currentDraggingElem.classList.remove("dragging");
+
+            initComponent(currentDraggingElem);
+        }
 
         $(currentDraggingBaseElem).animate({
             opacity: "1"
@@ -537,12 +607,20 @@ function onMouseUp(e) {
     }
 
     if (isDragging) {
+        if (isInToolbarArea()) {
+            let comp = findComponentFromElem(currentDraggingElem);
+            comp.delete();
+            removeFromArray(allComponents, comp);
+        }
+
         currentDraggingElemComponent = null;
 
         isDragging = false;
         currentDraggingElem.classList.remove("dragging");
         currentDraggingElem = null;
     }
+
+    exitDragMode();
 }
 
 //#endregion

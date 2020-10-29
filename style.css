@@ -1,8 +1,7 @@
-:root {
+:root {}
 
-}
-
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     height: 100%;
@@ -20,7 +19,7 @@ html, body {
 }
 
 #toolbar {
-    height: 100px;
+    height: 103px;
     width: 100%;
     line-height: 100%;
     position: relative;
@@ -67,30 +66,36 @@ html, body {
     border-color: transparent;
 }
 
-.hidden, .draggable-base > .comp-circle-left, .draggable-base > .comp-circle-right, .draggable-base > .add-component-panel, .dragging > .add-component-panel {
+.hidden,
+.draggable-base>.comp-circle-left,
+.draggable-base>.comp-circle-right,
+.draggable-base>.add-component-panel,
+.dragging>.add-component-panel {
     display: none !important;
 }
 
-.circuit-icon > .comp-circle-left {
+.circuit-icon>.comp-circle-left {
     position: absolute;
     left: -1px;
 }
 
 
-.circuit-icon > .comp-circle-right {
+.circuit-icon>.comp-circle-right {
     position: absolute;
     right: -1px;
 }
 
-.left-occupied > .comp-circle-left, .left-occupied > .add-component-left {
+.left-occupied>.comp-circle-left,
+.left-occupied>.add-component-left {
     display: none !important;
 }
 
-.right-occupied > .comp-circle-right, .right-occupied > .add-component-right {
+.right-occupied>.comp-circle-right,
+.right-occupied>.add-component-right {
     display: none !important;
 }
 
-.circuit-icon:hover > .add-component-panel {
+.circuit-icon:hover>.add-component-panel {
     display: block;
 }
 
@@ -119,7 +124,7 @@ html, body {
     backdrop-filter: blur(10px);
 }
 
-.add-component-panel > button {
+.add-component-panel>button {
     font: 14px "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     border: none;
     background-color: transparent;
@@ -132,7 +137,7 @@ html, body {
     padding: 4px;
 }
 
-.add-component-panel > button:hover {
+.add-component-panel>button:hover {
     color: #000000;
 }
 
@@ -149,6 +154,7 @@ html, body {
 .add-component-left button {
     float: right;
 }
+
 .add-component-left button:hover {
     margin-right: 8px;
 }
@@ -165,6 +171,7 @@ html, body {
 .add-component-right button {
     float: left;
 }
+
 .add-component-right button:hover {
     margin-left: 8px;
 }
@@ -181,13 +188,49 @@ html, body {
     -moz-border-radius: 4px;
     -ms-border-radius: 4px;
     -o-border-radius: 4px;
-    transition:border-color 150ms;
-    -webkit-transition:border-color 150ms;
-    -moz-transition:border-color 150ms;
-    -ms-transition:border-color 150ms;
-    -o-transition:border-color 150ms;
+    transition: border-color 150ms;
+    -webkit-transition: border-color 150ms;
+    -moz-transition: border-color 150ms;
+    -ms-transition: border-color 150ms;
+    -o-transition: border-color 150ms;
 
-    z-index: 5;
+    z-index: 999;
+}
+
+#delete-toolbar {
+    background-color: white;
+
+}
+
+#delete-toolbar * {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+    -moz-transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    -o-transform: translate(-50%, -50%);
+}
+
+#delete-icon {
+    height: 56px;
+    filter: invert(35%);
+    -webkit-filter: invert(35%);
+    transition: 150ms filter, 150ms -webkit-filter;
+    -webkit-transition: 150ms filter, 150ms -webkit-filter;
+    -moz-transition: 150ms filter, 150ms -webkit-filter;
+    -ms-transition: 150ms filter, 150ms -webkit-filter;
+    -o-transition: 150ms filter, 150ms -webkit-filter;
+}
+
+.delete-toolbar-hover {
+    background-color: #A30000 !important;
+}
+
+.delete-toolbar-hover img {
+    filter: invert(100%) !important;
+    -webkit-filter: invert(100%) !important;
 }
 
 .draggable:hover {
@@ -197,6 +240,7 @@ html, body {
 
 .dragging {
     position: absolute;
+    z-index: 999;
 }
 
 /* #endregion */
@@ -205,13 +249,18 @@ html, body {
 
 .circuit-wire {
     position: absolute;
-
     border-width: 8px;
     border-style: solid;
-
     transform: translate(-4px, -4px);
-
     z-index: 0;
+
+    opacity: 0;
+    
+    transition: 150ms opacity;
+    -webkit-transition: 150ms opacity;
+    -moz-transition: 150ms opacity;
+    -ms-transition: 150ms opacity;
+    -o-transition: 150ms opacity;
 }
 
 /* #endregion */
@@ -230,29 +279,27 @@ html, body {
 
 .toolbar-overlay {
     background-color: white;
-    z-index: 999;
-    height: 97px;
+    z-index: 100;
+    height: 100px;
     display: none;
     opacity: 0;
-    transition: opacity 150ms;
-    -webkit-transition: opacity 150ms;
-    -moz-transition: opacity 150ms;
-    -ms-transition: opacity 150ms;
-    -o-transition: opacity 150ms;
-
+    transition: all 150ms;
+    -webkit-transition: all 150ms;
+    -moz-transition: all 150ms;
+    -ms-transition: all 150ms;
+    -o-transition: all 150ms;
     position: relative;
-
     overflow: hidden;
 }
 
-#connectmode-toolbar > .wrapper {
+#connectmode-toolbar>.wrapper {
 
     width: 500px;
     text-align: center;
     margin: 32px auto;
 }
 
-#connectmode-toolbar > .wrapper * {
+#connectmode-toolbar>.wrapper * {
     display: inline-block;
     vertical-align: middle;
 }
@@ -292,14 +339,14 @@ html, body {
 #compute-button {
     border-radius: 4px;
     border-width: 0;
-    font-family: "Playfair Display",Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    font-family: "Playfair Display", Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
     font-size: 20px;
     font-weight: bold;
     background-color: #2f5ae4;
     color: white;
     padding: 0 16px;
 
-    
+
     height: 50px;
 
     margin: 0 16px;
@@ -319,4 +366,6 @@ html, body {
 }
 
 
-button:focus {outline:0;}
+button:focus {
+    outline: 0;
+}
