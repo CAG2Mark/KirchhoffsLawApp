@@ -1,4 +1,7 @@
-:root {}
+:root {
+    --wire-size: 7px;
+
+}
 
 html,
 body {
@@ -249,8 +252,6 @@ body {
 
 .circuit-wire {
     position: absolute;
-    border-width: 8px;
-    border-style: solid;
     transform: translate(-4px, -4px);
     z-index: 0;
 
@@ -261,6 +262,86 @@ body {
     -moz-transition: 150ms opacity;
     -ms-transition: 150ms opacity;
     -o-transition: 150ms opacity;
+
+    overflow: visible;
+}
+
+.circuit-wire-part {
+    position: absolute;
+    background-color: black;
+
+    cursor: pointer;
+}
+
+/* top */
+.circuit-wire-0 {
+    width: calc(100% + var(--wire-size));
+    height: var(--wire-size);
+    top: 0;
+    left: 0;
+}
+
+/* right */
+.circuit-wire-1 {
+    height: calc(100% + var(--wire-size));
+    width: var(--wire-size);
+    right: calc(-1 * var(--wire-size));
+    top: 0;
+}
+
+/* bottom */
+.circuit-wire-2 {
+    width: calc(100% + var(--wire-size));
+    height: var(--wire-size);
+    bottom: calc(-1 * var(--wire-size));
+    left: 0;
+}
+
+/* left */
+.circuit-wire-3 {
+    height: calc(100% + var(--wire-size));
+    width: var(--wire-size);
+    left: 0;
+    top: 0;
+}
+
+/* top right */
+.circuit-wire-hook-0 {
+    width: var(--wire-size);
+    height: calc(50% + var(--wire-size));
+    right: calc(-1 * var(--wire-size));
+    top: 0;
+}
+
+/* bottom right */
+.circuit-wire-hook-1 {
+    width: var(--wire-size);
+    height: calc(50% + var(--wire-size));
+    right: calc(-1 * var(--wire-size));
+    bottom: calc(-1 * var(--wire-size));
+}
+
+/* bottom left */
+.circuit-wire-hook-2 {
+    width: var(--wire-size);
+    height: calc(50% + var(--wire-size));
+    left: 0;
+    bottom: calc(-1 * var(--wire-size));
+}
+
+/* top left */
+.circuit-wire-hook-3 {
+    width: var(--wire-size);
+    height: calc(50% + var(--wire-size));
+    left: 0;
+    top: 0;
+}
+
+.circuit-wire-hook-mid {
+    width: calc(100% + var(--wire-size));
+    height: var(--wire-size);
+    top: 50%;
+    left: 0;
 }
 
 /* #endregion */

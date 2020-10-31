@@ -19,7 +19,7 @@ document.body.addEventListener('keydown', (e) => {
             exitConnectMode();
         }
     }
-})
+});
 
 var currentToolbarOverlay;
 
@@ -39,7 +39,7 @@ function showToolbarOverlay(overlay) {
         }, 20);
 
     }, 1);
-    
+
 
 }
 
@@ -118,7 +118,7 @@ class CircuitUIComponent {
             if (isOrthodox) {
                 elem.setTail(this, true);
             } else {
-                elem.setHead(this, true)
+                elem.setHead(this, true);
             }
 
             let wire = new Wire(this, elem);
@@ -142,7 +142,7 @@ class CircuitUIComponent {
         if (node.isLeft) {
             this.setHead(parent, silent);
         } else {
-            this.setHead(parent, silent, false)
+            this.setHead(parent, silent, false);
         }
     }
 
@@ -185,7 +185,7 @@ class CircuitUIComponent {
             if (isOrthodox) {
                 elem.setHead(this, true);
             } else {
-                elem.setTail(this, true)
+                elem.setTail(this, true);
             }
 
             let wire = new Wire(this, elem);
@@ -207,7 +207,7 @@ class CircuitUIComponent {
         if (!node.isLeft) {
             this.setTail(parent, silent);
         } else {
-            this.setTail(parent, silent, false)
+            this.setTail(parent, silent, false);
         }
     }
 
@@ -264,7 +264,7 @@ const wireTypes = {
     rightToLeft: 'righttoleft',
     leftToLeft: 'lefttoleft',
     rightToRight: 'righttoright'
-}
+};
 
 const thickness = "7px";
 
@@ -277,10 +277,44 @@ class Wire {
     */
 
     constructor(comp1, comp2) {
+        // create wire wrapper
         this.wireElem = document.createElement("div");
         this.wireElem.classList.add("circuit-wire");
         circuitArea.appendChild(this.wireElem);
+
         this.wireElem.style.opacity = 1;
+        // create individual wire parts
+
+        // part 1: standard connection
+        let wrapperStandard = document.createElement("span");
+        wrapperStandard.classList.add("circuit-wire-standard-wrap");
+        this.wireElem.appendChild(wrapperStandard);
+        this.wrapperStandard = wrapperStandard;
+        // populate
+        for (var i = 0; i < 4; i++) {
+            let newWire = document.createElement("div");
+            newWire.classList.add(`circuit-wire-part`);
+            newWire.classList.add(`circuit-wire-${i}`);
+            wrapperStandard.appendChild(newWire);
+        }
+
+        // part 2: hook connection
+        let wrapperHook = document.createElement("span");
+        wrapperHook.classList.add("circuit-wire-standard-wrap");
+        this.wireElem.appendChild(wrapperHook);
+        this.wrapperHook = wrapperHook;
+        // populate
+        for (var j = 0; j < 4; j++) {
+            let newWire = document.createElement("div");
+            newWire.classList.add(`circuit-wire-part`);
+            newWire.classList.add(`circuit-wire-hook-${j}`);
+            wrapperHook.appendChild(newWire);
+        }
+
+        let newWire = document.createElement("div");
+        newWire.classList.add(`circuit-wire-part`);
+        newWire.classList.add(`circuit-wire-hook-mid`);
+        wrapperHook.appendChild(newWire);
 
         this.comp1 = comp1;
         this.comp2 = comp2;
@@ -356,6 +390,18 @@ class Wire {
         this.wireElem.style.width = Math.abs(anchor1.left - anchor2.left - 1) + "px";
         this.wireElem.style.height = Math.abs(anchor1.top - anchor2.top) + "px";
 
+        // FORMAT
+        // if in the form [bool, bool, bool, bool]:
+        // then draw it as if it were a border with 7px
+        // 
+        // if in the form "[bool]:"
+        // then it is assuming the connection will be displayed incorrectly if the above method is used
+        // if false:
+        // then the lower element is on the left
+        // if true:
+        // then the lower element is on the right
+        let wireConfig;
+
         // cases for these the types of connections
         if (this.wireType == wireTypes.leftToRight || this.wireType == wireTypes.rightToLeft) {
 
@@ -365,17 +411,18 @@ class Wire {
             // 2 = left is below
             let v_anchorDeltaIndex = 0;
 
-            // if they are perfectly aligned vertically
-            let h_anchorDeltaZero = anchor1.left == anchor2.left;
-
             if (anchor1.top != anchor2.top) {
                 v_anchorDeltaIndex = (anchor1.top < anchor2.top) + 1;
             }
 
-            if (v_anchorDeltaIndex <= 1) {
-                this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+            if (anchor1.left > anchor2.left) {
+                wireConfig = [anchor1.top > anchor2.top];
             } else {
-                this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+                if (v_anchorDeltaIndex <= 1) {
+                    wireConfig = [0, 1, 1, 0];
+                } else {
+                    wireConfig = [0, 0, 1, 1];
+                }
             }
         } else if (this.wireType == wireTypes.rightToRight) {
             // two variables, whether or not the first is above the other, and whether or not the first is left of the other
@@ -385,15 +432,15 @@ class Wire {
 
             if (isLeft) {
                 if (isBelow)
-                    this.wireElem.style.borderWidth = `${thickness} ${thickness} 0 0`;
+                    wireConfig = [1, 1, 0, 0];
                 else {
-                    this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+                    wireConfig = [0, 1, 1, 0];
                 }
             } else {
                 if (isBelow)
-                    this.wireElem.style.borderWidth = `0 ${thickness} ${thickness} 0`;
+                    wireConfig = [0, 1, 1, 0];
                 else {
-                    this.wireElem.style.borderWidth = `${thickness} ${thickness} 0 0`;
+                    wireConfig = [1, 1, 0, 0];
                 }
             }
         } else {
@@ -404,17 +451,45 @@ class Wire {
 
             if (!isLeft) {
                 if (isBelow)
-                    this.wireElem.style.borderWidth = `${thickness} 0 0 ${thickness}`;
+                    wireConfig = [1, 0, 0, 1];
                 else {
-                    this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+                    wireConfig = [0, 0, 1, 1];
                 }
             } else {
                 if (isBelow)
-                    this.wireElem.style.borderWidth = `0 0 ${thickness} ${thickness}`;
+                    wireConfig = [0, 0, 1, 1];
                 else {
-                    this.wireElem.style.borderWidth = `${thickness} 0 0 ${thickness}`;
+                    wireConfig = [1, 0, 0, 1];
                 }
             }
+        }
+
+
+        // parse wire config
+        if (wireConfig.length == 4) {
+
+            // hide the hook connection
+            this.wrapperHook.style.display = "none";
+            // show the standard connection
+            this.wrapperStandard.style.display = "block";
+
+            for (var i = 0; i < 4; i++) {
+                let part = this.wrapperStandard.getElementsByClassName(`circuit-wire-${i}`)[0];
+                part.style.display = wireConfig[i] ? "block" : "none";
+            }
+        } else {
+
+            // hide the standard connection
+            this.wrapperStandard.style.display = "none";
+            // show the hook connection
+            this.wrapperHook.style.display = "block";
+
+            // specifically designed so that alternatly numbered wire parts should be visible
+            for (var j = 0; j < 4; j++) {
+                let part = this.wrapperHook.getElementsByClassName(`circuit-wire-hook-${j}`)[0];
+                part.style.display = (j + wireConfig[0]) % 2 ? "none" : "block";
+            }
+
         }
 
     }
@@ -683,8 +758,8 @@ function findFreeNodes(elem) {
     if (elem) removeFromArray(allElems, elem);
     // also remove the connected nodes of the element
     let comp = findComponentFromElem(elem);
-    if (comp.head) removeFromArray(allElems, comp.head.element)
-    if (comp.tail) removeFromArray(allElems, comp.tail.element)
+    if (comp.head) removeFromArray(allElems, comp.head.element);
+    if (comp.tail) removeFromArray(allElems, comp.tail.element);
 
     let allNodes = [];
     allElems.forEach(o => {
@@ -696,7 +771,7 @@ function findFreeNodes(elem) {
                 element: nodesLeft[0],
                 parent: o,
                 isLeft: true
-            })
+            });
         }
 
         // right
@@ -706,7 +781,7 @@ function findFreeNodes(elem) {
                 element: nodesRight[0],
                 parent: o,
                 isLeft: false
-            })
+            });
         }
     });
 
@@ -756,7 +831,7 @@ function exitConnectMode() {
     connectModeNodes.forEach(node => {
         node.element.classList.remove("comp-circle-active");
         node.element.onclick = null;
-    })
+    });
     isConnectMode = false;
 
     circuitArea.classList.remove("connect-mode");
