@@ -43,6 +43,16 @@ body {
     -o-transform: translateY(-50%);
 }
 
+.horizontal-align {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
+    -moz-transform: translateX(-50%);
+    -ms-transform: translateX(-50%);
+    -o-transform: translateX(-50%);
+}
+
 .circuit-icon {
     height: 85px;
     width: auto;
@@ -72,6 +82,8 @@ body {
 .hidden,
 .draggable-base>.comp-circle-left,
 .draggable-base>.comp-circle-right,
+.draggable-base>.comp-circle-top,
+.draggable-base>.comp-circle-bottom,
 .draggable-base>.add-component-panel,
 .dragging>.add-component-panel {
     display: none !important;
@@ -88,6 +100,25 @@ body {
     right: -1px;
 }
 
+.circuit-icon>.comp-circle-top {
+    position: absolute;
+    top: -1px;
+}
+
+.comp-junction-h, .comp-junction-v {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    z-index: -1;
+}
+
+
+.circuit-icon>.comp-circle-bottom {
+    position: absolute;
+    bottom: -1px;
+}
+
 .left-occupied>.comp-circle-left,
 .left-occupied>.add-component-left {
     display: none !important;
@@ -95,6 +126,16 @@ body {
 
 .right-occupied>.comp-circle-right,
 .right-occupied>.add-component-right {
+    display: none !important;
+}
+
+.top-occupied>.comp-circle-top,
+.top-occupied>.add-component-top {
+    display: none !important;
+}
+
+.bottom-occupied>.comp-circle-bottom,
+.bottom-occupied>.add-component-bottom {
     display: none !important;
 }
 

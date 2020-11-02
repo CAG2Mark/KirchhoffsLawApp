@@ -87,6 +87,8 @@ class CircuitUIComponent {
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
 
+            if (this.head == null) console.log(this);
+
             // orthodox connections refer to left ro right or right to left connections
             isOrthodox = this.head.tail === this;
 
@@ -154,6 +156,7 @@ class CircuitUIComponent {
     setTail(elem, silent, isOrthodox) {
 
         this.setTailExtensions(elem);
+        console.log(this);
 
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
@@ -181,8 +184,12 @@ class CircuitUIComponent {
         // assume is orthodox connection unless otherwise stated
         if (isOrthodox === undefined) isOrthodox = true;
 
+        if (!this.backendComponent) console.log(this);
+
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
+
+
 
         this.element.classList.add("left-occupied");
 
@@ -247,7 +254,8 @@ class CircuitUIComponent {
     }
 
     delete() {
-        circuitArea.removeChild(this.element);
+        if (circuitArea.contains(this.element))
+            circuitArea.removeChild(this.element);
         if (this.head)
             this.setHead(null);
         if (this.tail)
@@ -276,65 +284,114 @@ class ComponentAnchor {
 // quick solution: just have the junction be treated in the UI "glue" as two separate components stiched together
 class CircuitJunction {
     constructor(juncRootElem) {
+        console.log("test");
 
-        let hComp = juncRootElem.getElementsByClassName("circuit-junction-h")[0];
-        let vComp = juncRootElem.getElementsByClassName("circuit-junction-v")[0];
+        this.element = juncRootElem;
 
-        this.horizontalComponent = new CircuitJunctionH(hComp, this);
-        this.verticalComponent = new CircuitJunctionV(vComp, this);
+        let hElem = juncRootElem.getElementsByClassName("comp-junction-h")[0];
+        let vElem = juncRootElem.getElementsByClassName("comp-junction-v")[0];
 
         this.backendComponent = new Junction();
+
+        this.hComp = new JuncPartH(hElem, this);
+        this.vComp = new JuncPartV(vElem, this);
+
     }
 
     addConnection() {
-        
+
+    }
+
+    reDrawWires() {
+        this.hComp.reDrawWires();
+        this.vComp.reDrawWires();
+    }
+
+    delete() {
+        circuitArea.removeChild(this.element);
+        this.hComp.delete();
+        this.vComp.delete();
     }
 }
 
-class CircuitJunctionH extends CircuitUIComponent {
+class JuncPartH extends CircuitUIComponent {
 
     constructor(elem, parentJunc) {
-        this.parentJunc = parentJunc;
         super(elem);
+
+        this.parentJunc = parentJunc;
+        this.backendComponent = parentJunc.backendComponent;
+        this.parentElement = parentJunc.element;
     }
 
     setHeadExtensions(elem) {
         this.parentJunc.addConnection(elem);
+
+        if (!elem) {
+            this.parentElement.classList.remove("right-occupied");
+        } else {
+            this.parentElement.classList.add("right-occupied");
+        }
     }
     setTailExtensions(elem) {
         this.parentJunc.addConnection(elem);
+
+        if (!elem) {
+            this.parentElement.classList.remove("left-occupied");
+        } else {
+            this.parentElement.classList.add("left-occupied");
+        }
     }
+
 
 
 }
 
-class CircuitJunctionV extends CircuitUIComponent {
+class JuncPartV extends CircuitUIComponent {
 
     constructor(elem, parentJunc) {
-        this.parentJunc = parentJunc;
         super(elem);
+
+        this.parentJunc = parentJunc;
+        this.backendComponent = parentJunc.backendComponent;
+        this.parentElement = parentJunc.element;
     }
 
     // overrides
 
-    // left is now top
+    // left is now bottom
     getLeftAnchor() {
         let offset = $(this.element).offset();
-        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top, true);
+        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top + this.element.offsetHeight, false);
     }
 
-    // right is now bottom
+    // right is now top
     getRightAnchor() {
         let offset = $(this.element).offset();
-        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top + this.element.offsetHeight, false);
+        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top, true);
     }
 
 
     setHeadExtensions(elem) {
         this.parentJunc.addConnection(elem);
+
+        if (!elem) {
+            this.parentElement.classList.remove("top-occupied");
+        } else {
+            this.parentElement.classList.add("top-occupied");
+        }
     }
+    
     setTailExtensions(elem) {
+        console.log("tail extension set");
+
         this.parentJunc.addConnection(elem);
+
+        if (!elem) {
+            this.parentElement.classList.remove("bottom-occupied");
+        } else {
+            this.parentElement.classList.add("bottom-occupied");
+        }
     }
 }
 
@@ -417,8 +474,6 @@ class Wire {
         } else if (this.comp1.head === this.comp2 && this.comp2.head === this.comp1) {
             this.wireType = wireTypes.rightToRight;
         } else {
-            console.log(this.comp1);
-            console.log(this.comp2);
 
             console.log("Undefined connection!");
 
@@ -578,10 +633,28 @@ class Wire {
 
 var allComponents = [];
 
-function findComponentFromElem(elem) {
+function findComponentFromElem(elem, returnJunctionParent) {
+
     for (var i = 0; i < allComponents.length; i++) {
-        if (allComponents[i].element == elem) {
-            return allComponents[i];
+
+        let comp = allComponents[i];
+
+        if (comp.element == elem) {
+            return comp;
+        }
+        // for junction
+        if (elem.getAttribute("data-circuit-component") == "junction" ||
+            elem.parentElement.getAttribute("data-circuit-component")) {
+
+            if (!(comp instanceof CircuitJunction)) continue;
+
+            if (comp.hComp.element === elem) {
+                return returnJunctionParent ? comp : comp.hComp;
+            } else if (comp.vComp.element === elem) {
+                return returnJunctionParent ? comp : comp.vComp;
+            } else if (comp.element === elem) {
+                return comp;
+            }
         }
     }
 }
@@ -701,7 +774,7 @@ function onMouseMove(e) {
     if (isDraggingBase || isDragging) {
 
         if (!currentDraggingElemComponent) {
-            currentDraggingElemComponent = findComponentFromElem(currentDraggingElem);
+            currentDraggingElemComponent = findComponentFromElem(currentDraggingElem, true);
         }
 
         // move y value
@@ -730,11 +803,18 @@ function onMouseMove(e) {
 function initComponent(elem) {
     // reads from this fixed var instead of the changing one
     var x = elem;
+
     elem.addEventListener('mousedown', function () {
         draggableMouseDown(x);
     });
 
-    let newComp = new CircuitUIComponent(elem);
+
+    let newComp;
+    if (elem.getAttribute("data-circuit-component") == "junction") {
+        newComp = new CircuitJunction(elem);
+    } else {
+        newComp = new CircuitUIComponent(elem);
+    }
 
     allComponents.push(newComp);
 
@@ -765,7 +845,7 @@ function onMouseUp(e) {
 
     if (isDragging) {
         if (isInToolbarArea()) {
-            let comp = findComponentFromElem(currentDraggingElem);
+            let comp = findComponentFromElem(currentDraggingElem, true);
             comp.delete();
             removeFromArray(allComponents, comp);
         }
@@ -847,19 +927,23 @@ function findFreeNodes(elem) {
 
     if (elem) removeFromArray(allElems, elem);
     // also remove the connected nodes of the element
-    let comp = findComponentFromElem(elem);
+    let comp = findComponentFromElem(elem, true);
     if (comp.head) removeFromArray(allElems, comp.head.element);
     if (comp.tail) removeFromArray(allElems, comp.tail.element);
 
     let allNodes = [];
     allElems.forEach(o => {
+
+        let isJunction = o.getAttribute("data-circuit-component") == "junction";
+
         // left
         let nodesLeft = o.getElementsByClassName("comp-circle-left");
+
 
         if (nodesLeft[0]) {
             allNodes.push({
                 element: nodesLeft[0],
-                parent: o,
+                parent: isJunction ? o.getElementsByClassName("comp-junction-h")[0] : o,
                 isLeft: true
             });
         }
@@ -869,8 +953,28 @@ function findFreeNodes(elem) {
         if (nodesRight[0]) {
             allNodes.push({
                 element: nodesRight[0],
-                parent: o,
+                parent: isJunction ? o.getElementsByClassName("comp-junction-h")[0] : o,
                 isLeft: false
+            });
+        }
+
+        // top (junc only)
+        let nodesTop = o.getElementsByClassName("comp-circle-top");
+        if (nodesTop[0]) {
+            allNodes.push({
+                element: nodesTop[0],
+                parent: isJunction ? o.getElementsByClassName("comp-junction-v")[0] : o,
+                isLeft: false
+            });
+        }
+
+        // bottom (junc only)
+        let nodesBottom = o.getElementsByClassName("comp-circle-bottom");
+        if (nodesBottom[0]) {
+            allNodes.push({
+                element: nodesBottom[0],
+                parent: isJunction ? o.getElementsByClassName("comp-junction-v")[0] : o,
+                isLeft: true
             });
         }
     });
