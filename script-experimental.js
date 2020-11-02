@@ -53,6 +53,21 @@ function hideToolbarOverlay() {
 
 //#region UI Components
 
+
+// quick solution: just have the junction be treated in the UI "glue" as two separate components stiched together
+class CircuitJunction {
+    constructor() {
+        this.horizontalComponent
+    }
+}
+
+const connectionDirection = {
+    head: "left",
+    tail: "tail",
+    top: "top",
+    bottom: "bottom",
+}
+
 class CircuitUIComponent {
 
     /*
@@ -60,13 +75,19 @@ class CircuitUIComponent {
     backendComponent;
     head;
     tail;
+    top;
+    bottom;
 
     leftWire;
     rightWire;
+    topWire;
+    bottomWire;
 
+    // for junctions
+    isVertical
     */
 
-    constructor(element) {
+    constructor(element, hasVertical) {
         this.element = element;
 
         let elemType = element.getAttribute("data-circuit-component");
@@ -76,34 +97,66 @@ class CircuitUIComponent {
             this.backendComponent = new Resistor();
         }
 
+        // even though null is falsey just set it for safety's sake
+        this.hasVertical = hasVertical;
     }
 
-    // always on right side
-    // silent refers to whether a wire should be added. usually declared when another element is calling this
-    setHead(elem, silent, isOrthodox) {
+    removeAdjacent(elem, silent) {
+        if (elem === this.head) {
+            this.setAdjacent(null, true, null, connectionDirection.head);
+        }
+        else if (elem === this.tail) {
+            this.setAdjacent(null, true, null, connectionDirection.tail);
+        }
+        else if (elem === this.top) {
+            this.setAdjacent(null, true, null, connectionDirection.top);
+        }
+        else if (elem === this.bottom) {
+            this.setAdjacent(null, true, null, connectionDirection.bottom);
+        }
+    }
 
-        this.setHeadExtensions(elem);
-
+    setAdjacent(elem, silent, isOrthodox, direction) {
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
-
-            // orthodox connections refer to left ro right or right to left connections
-            isOrthodox = this.head.tail === this;
-
             if (!silent) {
-                if (isOrthodox)
-                    this.head.setTail(null, true);
-                else {
-                    this.head.setHead(null, true);
-                }
+                elem.removeAdjacent(this, true);
             }
+            
+            switch (direction) {
+                case connectionDirection.head:
+                    this.rightWire.delete();
 
-            this.rightWire.delete();
+                    this.head = null;
+                    this.rightWire = null;
+                    this.backendComponent.head = null;
+                    this.element.classList.remove("right-occupied");
+                    break;
+                case connectionDirection.tail:
+                    this.leftWire.delete();
 
-            this.head = null;
-            this.rightWire = null;
-            this.backendComponent.head = null;
-            this.element.classList.remove("right-occupied");
+                    this.tail = null;
+                    this.leftWire = null;
+                    this.backendComponent.head = null;
+                    this.element.classList.remove("right-occupied");
+                    break;
+                case connectionDirection.top:
+                    this.rightWire.delete();
+
+                    this.head = null;
+                    this.rightWire = null;
+                    this.backendComponent.head = null;
+                    this.element.classList.remove("right-occupied");
+                    break;
+                case connectionDirection.tail:
+                    this.rightWire.delete();
+
+                    this.head = null;
+                    this.rightWire = null;
+                    this.backendComponent.head = null;
+                    this.element.classList.remove("right-occupied");
+                    break;
+            }
 
             return;
         }
@@ -140,6 +193,13 @@ class CircuitUIComponent {
         }
     }
 
+    // always on right side
+    // silent refers to whether a wire should be added. usually declared when another element is calling this
+    setHead(elem, silent, isOrthodox) {
+
+
+    }
+
     setHeadNode(node, silent) {
         let parent = findComponentFromElem(node.parent);
 
@@ -152,8 +212,6 @@ class CircuitUIComponent {
 
     // always on left side
     setTail(elem, silent, isOrthodox) {
-
-        this.setTailExtensions(elem);
 
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
@@ -217,14 +275,6 @@ class CircuitUIComponent {
         }
     }
 
-    // for overrides to use
-    setHeadExtensions(elem) {
-
-    }
-    setTailExtensions(elem) {
-
-    }
-
 
     // UI helpers
     getLeftAnchor() {
@@ -235,6 +285,17 @@ class CircuitUIComponent {
     getRightAnchor() {
         let offset = $(this.element).offset();
         return new ComponentAnchor(offset.left + this.element.offsetWidth, offset.top + this.element.offsetHeight / 2, false);
+
+    }
+
+    getTopAnchor() {
+        let offset = $(this.element).offset();
+        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top, true);
+    }
+
+    getBottomAnchor() {
+        let offset = $(this.element).offset();
+        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top + this.element.offsetHeight, false);
     }
 
     reDrawWires() {
@@ -271,73 +332,6 @@ class ComponentAnchor {
         this.isHead = isHead || false;
     }
 }
-
-
-// quick solution: just have the junction be treated in the UI "glue" as two separate components stiched together
-class CircuitJunction {
-    constructor(juncRootElem) {
-
-        let hComp = juncRootElem.getElementsByClassName("circuit-junction-h")[0];
-        let vComp = juncRootElem.getElementsByClassName("circuit-junction-v")[0];
-
-        this.horizontalComponent = new CircuitJunctionH(hComp, this);
-        this.verticalComponent = new CircuitJunctionV(vComp, this);
-
-        this.backendComponent = new Junction();
-    }
-
-    addConnection() {
-        
-    }
-}
-
-class CircuitJunctionH extends CircuitUIComponent {
-
-    constructor(elem, parentJunc) {
-        this.parentJunc = parentJunc;
-        super(elem);
-    }
-
-    setHeadExtensions(elem) {
-        this.parentJunc.addConnection(elem);
-    }
-    setTailExtensions(elem) {
-        this.parentJunc.addConnection(elem);
-    }
-
-
-}
-
-class CircuitJunctionV extends CircuitUIComponent {
-
-    constructor(elem, parentJunc) {
-        this.parentJunc = parentJunc;
-        super(elem);
-    }
-
-    // overrides
-
-    // left is now top
-    getLeftAnchor() {
-        let offset = $(this.element).offset();
-        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top, true);
-    }
-
-    // right is now bottom
-    getRightAnchor() {
-        let offset = $(this.element).offset();
-        return new ComponentAnchor(offset.left + this.element.offsetWidth / 2, offset.top + this.element.offsetHeight, false);
-    }
-
-
-    setHeadExtensions(elem) {
-        this.parentJunc.addConnection(elem);
-    }
-    setTailExtensions(elem) {
-        this.parentJunc.addConnection(elem);
-    }
-}
-
 
 
 const wireTypes = {
