@@ -266,6 +266,10 @@ class Junction implements IComponent {
     getNextComponent(previousComponent: IComponent) {
         return null;
     }
+    
+    constructor() {
+        this.components = [];
+    }
 }
 
 //  HIERARCHY:

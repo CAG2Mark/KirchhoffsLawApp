@@ -168,6 +168,10 @@ class Junction {
     getNextComponent(previousComponent) {
         return null;
     }
+        
+    constructor() {
+        this.components = [];
+    }
 }
 //  HIERARCHY:
 //  CIRCUIT

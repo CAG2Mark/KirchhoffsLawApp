@@ -298,8 +298,13 @@ class CircuitJunction {
 
     }
 
-    addConnection() {
-
+    addConnection(elem) {
+        if (elem) {
+            this.backendComponent.components.push(elem);
+        }
+        else {
+            removeFromArray(this.backendComponent.components, elem);
+        }
     }
 
     reDrawWires() {
