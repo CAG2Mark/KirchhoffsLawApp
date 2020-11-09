@@ -3,6 +3,10 @@
 
 }
 
+*:focus {
+    outline: none;
+}
+
 html,
 body {
     margin: 0;
@@ -238,7 +242,7 @@ body {
     -ms-transition: border-color 150ms;
     -o-transition: border-color 150ms;
 
-    z-index: 999;
+    z-index: 500;
 }
 
 #delete-toolbar {
@@ -386,6 +390,75 @@ body {
 }
 
 /* #endregion */
+
+/* properties panel styles */
+
+.draggable:focus-within .properties-panel {
+    display: block;
+}
+
+.draggable:focus-within {
+    border-color: rgb(54, 124, 204);
+    z-index: 1000;
+}
+
+.dragging .properties-panel {
+    display: none !important;
+}
+
+.properties-panel {
+    display: none;
+
+    position: absolute;
+    top: calc(100% + 4px);
+    width: 250px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 2px solid #dfdfdf;
+    padding: 8px;
+    font-size: 18px;
+    left: 50%;
+    transform: translate(-50%, 0);
+    -webkit-transform: translate(-50%, 0);
+    -moz-transform: translate(-50%, 0);
+    -ms-transform: translate(-50%, 0);
+    -o-transform: translate(-50%, 0);
+
+    cursor: default !important;
+
+    backdrop-filter: blur(9px);
+
+    z-index: 1000;
+}
+
+input {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    
+    padding: 2px;
+
+    font-size: 16px;
+    border-radius: 0;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    -ms-border-radius: 0;
+    -o-border-radius: 0;
+
+    border: 1px solid #d6d6d6;
+
+    background-color: transparent;
+}
+
+input:hover {
+    border: 1px solid #b8b8b8;;
+}
+
+input:focus {
+    border: 1px solid #6886e7;;
+}
+
+.panel-info {
+    font-size: 14px;
+    color: #555555;
+}
 
 .toolbar-wrapper {
     position: absolute;

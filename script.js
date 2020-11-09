@@ -44,6 +44,8 @@ function showToolbarOverlay(overlay) {
 }
 
 function hideToolbarOverlay() {
+    if (!currentToolbarOverlay) return;
+
     currentToolbarOverlay.style.opacity = "0";
     setTimeout(() => {
         currentToolbarOverlay.style.display = "none";
@@ -723,6 +725,11 @@ function draggableMouseDown(elem) {
 
     if (isConnectMode) return;
 
+    // check if mouse is in properties panel
+    let panel = elem.getElementsByClassName("properties-panel")[0];
+    if (panel)
+        if ($(panel).is(':hover')) return;
+
     currentDraggingElem = elem;
 
     elem.ondragstart = function () {
@@ -767,7 +774,7 @@ const deleteToolbar = document.getElementById("delete-toolbar");
 function isInToolbarArea() {
     let pos = mouseY;
     let h = toolbar.getBoundingClientRect().height;
-    let thresh = document.body.scrollHeight;
+    let thresh = document.body.getBoundingClientRect().height;
 
     return pos >= thresh - h;
 }
@@ -823,6 +830,11 @@ function initComponent(elem) {
 
     allComponents.push(newComp);
 
+    setTimeout(() => {
+        x.focus();
+    }, 1);
+
+
     return newComp;
 }
 
@@ -859,6 +871,7 @@ function onMouseUp(e) {
 
         isDragging = false;
         currentDraggingElem.classList.remove("dragging");
+        
         currentDraggingElem = null;
     }
 

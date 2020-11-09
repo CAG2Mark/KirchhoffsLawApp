@@ -19,7 +19,7 @@
 
     <div id="toolbar">
         <div class="toolbar-wrapper" id="toolbar-main">
-            <div class="draggable-base circuit-icon" data-circuit-component="cell" id="cell-base">
+            <div tabindex="0" class="draggable-base circuit-icon" data-circuit-component="cell" id="cell-base">
                 <img src="Icons/Cell.svg" class="circuit-icon" id="cell-icon">
                 <svg width="16" height="16" class="comp-circle-left vertical-align">
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
@@ -37,8 +37,23 @@
                     <button onmousedown="connectCompRight(this.parentElement.parentElement)">Connect component</button>
                     <button onmousedown="createJuncRight(this.parentElement.parentElement)">Create junction</button>
                 </div>
+
+                <div class="properties-panel resistor-panel">
+                    <!-- EMF (V) -->
+                    <div>
+                        <span>
+                            EMF (V)
+                        </span>
+                        <input type="text">
+                    </div>
+                    <div>
+                        <span class="panel-info">
+                            <i>Input a variable or a number</i>
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="draggable-base circuit-icon" data-circuit-component="resistor" id="resistor-base">
+            <div tabindex="0" class="draggable-base circuit-icon" data-circuit-component="resistor" id="resistor-base">
                 <img src="Icons/Resistor.svg" class="circuit-icon" id="resistor-icon">
                 <svg width="16" height="16" class="comp-circle-left vertical-align">
                     <ellipse cx="8" cy="8" rx="8" ry="8"></ellipse>
@@ -55,6 +70,28 @@
                     <button onmousedown="createCompRight(this.parentElement.parentElement)">Create component</button>
                     <button onmousedown="connectCompRight(this.parentElement.parentElement)">Connect component</button>
                     <button onmousedown="createJuncRight(this.parentElement.parentElement)">Create junction</button>
+                </div>
+
+                <div class="properties-panel resistor-panel">
+                    <!-- resistance -->
+                    <div>
+                        <span>
+                            Resistance (Ω)
+                        </span>
+                        <input type="text">
+                    </div>
+                    <!-- potential difference -->
+                    <div>
+                        <span>
+                            Potential Difference (V)
+                        </span>
+                        <input type="text">
+                    </div>
+                    <div>
+                        <span class="panel-info">
+                            <i>Input a variable or a number</i>
+                        </span>
+                    </div>
                 </div>
             </div>
 
