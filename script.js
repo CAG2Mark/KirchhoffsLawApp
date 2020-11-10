@@ -302,10 +302,9 @@ class CircuitJunction {
 
     addConnection(elem) {
         if (elem) {
-            this.backendComponent.components.push(elem);
-        }
-        else {
-            removeFromArray(this.backendComponent.components, elem);
+            this.backendComponent.components.push(elem.backendComponent);
+        } else {
+            removeFromArray(this.backendComponent.components, elem.backendComponent);
         }
     }
 
@@ -388,7 +387,7 @@ class JuncPartV extends CircuitUIComponent {
             this.parentElement.classList.add("top-occupied");
         }
     }
-    
+
     setTailExtensions(elem) {
         console.log("tail extension set");
 
@@ -410,6 +409,13 @@ const wireTypes = {
     leftToLeft: 'lefttoleft',
     rightToRight: 'righttoright'
 };
+
+const dataTypes = {
+    emf: 'emf',
+    resistance: 'resistance',
+    pd: 'pd',
+    current: 'current',
+}
 
 const thickness = "7px";
 
@@ -871,7 +877,7 @@ function onMouseUp(e) {
 
         isDragging = false;
         currentDraggingElem.classList.remove("dragging");
-        
+
         currentDraggingElem = null;
     }
 
@@ -1063,6 +1069,70 @@ function connectCompRight(elem) {
     enterConnectMode(elem);
 }
 
+function updateData(elem, sender, type) {
+    let comp = findComponentFromElem(elem);
+    let val = sender.value;
+
+    /*
+    // parse, data validation stage
+    // all numbers will be multiplied and all letters will be split
+    let split = val.split(/(\d+)/);
+    let numbers = split.filter(v => !isNaN(v));
+    let vars = split.filter(v => isNaN(v));
+
+    let varsSplit = [];
+    vars.forEach(o => varsSplit.push(o));
+    varsSplit = varsSplit.sort();
+
+    let new
+    */
+
+    switch (type) {
+        case dataTypes.current:
+            break;
+        case dataTypes.emf:
+            // for cell, both need to be set
+            comp.backendComponent.emf = val;
+            comp.backendComponent.pd = val;
+            break;
+        case dataTypes.pd:
+            comp.backendComponent.pd = val;
+            break;
+        case dataTypes.resistance:
+            comp.backendComponent.resistance = val;
+            break;
+
+
+    }
+}
+
+function compute() {
+    var circuit = new Circuit();
+    circuit.components = allComponents.map(o => o.backendComponent);
+    var segs = circuit.generateSegments();
+
+    console.log("Beginning computation!");
+
+    var loops = circuit.generateLoops(segs);
+
+    let law1Eqns = [];
+    let law2Eqns = [];
+    let vars = [];
+
+    loops.forEach(loop => {
+        let eqns = loop.generateEquations(segs);
+        law1Eqns = law1Eqns.concat(eqns[1]);
+        law2Eqns = law2Eqns.concat(eqns[0]);
+        vars = vars.concat(eqns[2]);
+    });
+
+    vars = vars.filter(onlyUnique);
+
+    let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
+    console.log(eqns);
+    console.log(solveSystem(eqns).symbol);
+}
+
 //#endregion
 
 //#region right
@@ -1071,59 +1141,60 @@ function connectCompRight(elem) {
 
 //#endregion
 
+function test() {
+    //#region TEST
+    // modelling after https://media.discordapp.net/attachments/212472977013342211/714479735018750093/unknown.png
+    let cell1 = new Cell(6);
+    let res1 = new Resistor();
+    res1.resistance = 2;
+    let res2 = new Resistor();
+    res2.resistance = 2;
+    let res3 = new Resistor();
+    res3.resistance = 2;
+    let res4 = new Resistor();
+    res4.resistance = 2;
+    let cell2 = new Cell(6);
+    let junc1 = new Junction();
+    let junc2 = new Junction();
+    cell1.head = res4;
+    cell1.tail = res1;
+    res1.head = cell1;
+    res1.tail = junc1;
+    junc1.components = [res1, res2, cell2];
+    res2.tail = junc1;
+    res2.head = junc2;
+    cell2.tail = junc1;
+    cell2.head = res3;
+    res3.head = cell2;
+    res3.tail = junc2;
+    junc2.components = [res2, res3, res4];
+    res4.head = junc2;
+    res4.tail = cell1;
+    var circ = new Circuit();
+    circ.components = [junc2, cell1, cell2, res2, res3, res4, res1, junc1];
+    var segs = circ.generateSegments();
 
-//#region TEST
-// modelling after https://media.discordapp.net/attachments/212472977013342211/714479735018750093/unknown.png
-let cell1 = new Cell(6);
-let res1 = new Resistor();
-res1.resistance = 2;
-let res2 = new Resistor();
-res2.resistance = 2;
-let res3 = new Resistor();
-res3.resistance = 2;
-let res4 = new Resistor();
-res4.resistance = 2;
-let cell2 = new Cell(6);
-let junc1 = new Junction();
-let junc2 = new Junction();
-cell1.head = res4;
-cell1.tail = res1;
-res1.head = cell1;
-res1.tail = junc1;
-junc1.components = [res1, res2, cell2];
-res2.tail = junc1;
-res2.head = junc2;
-cell2.tail = junc1;
-cell2.head = res3;
-res3.head = cell2;
-res3.tail = junc2;
-junc2.components = [res2, res3, res4];
-res4.head = junc2;
-res4.tail = cell1;
-var circ = new Circuit();
-circ.components = [cell1, cell2, res1, res2, res3, res4, junc1, junc2];
-var segs = circ.generateSegments();
+    console.log("Beginning computation!");
 
-console.log("Beginning computation!");
+    var loops = circ.generateLoops(segs);
 
-var loops = circ.generateLoops(segs);
+    let law1Eqns = [];
+    let law2Eqns = [];
+    let vars = [];
 
-let law1Eqns = [];
-let law2Eqns = [];
-let vars = [];
+    loops.forEach(loop => {
+        let eqns = loop.generateEquations(segs);
+        law1Eqns = law1Eqns.concat(eqns[1]);
+        law2Eqns = law2Eqns.concat(eqns[0]);
+        vars = vars.concat(eqns[2]);
+    });
 
-loops.forEach(loop => {
-    let eqns = loop.generateEquations(segs);
-    law1Eqns = law1Eqns.concat(eqns[1]);
-    law2Eqns = law2Eqns.concat(eqns[0]);
-    vars = vars.concat(eqns[2]);
-});
+    vars = vars.filter(onlyUnique);
 
-vars = vars.filter(onlyUnique);
-
-let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
-console.log(eqns);
-console.log(solveSystem(eqns).symbol);
+    let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
+    console.log(eqns);
+    console.log(solveSystem(eqns).symbol);
 
 
-//#endregion
+    //#endregion
+}

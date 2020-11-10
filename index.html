@@ -44,7 +44,7 @@
                         <span>
                             EMF (V)
                         </span>
-                        <input type="text">
+                        <input type="text" onblur="updateData(this.parentElement.parentElement.parentElement, this, dataTypes.emf)">
                     </div>
                     <div>
                         <span class="panel-info">
@@ -78,14 +78,14 @@
                         <span>
                             Resistance (Ω)
                         </span>
-                        <input type="text">
+                        <input type="text" onblur="updateData(this.parentElement.parentElement.parentElement, this, dataTypes.resistance)">
                     </div>
                     <!-- potential difference -->
                     <div>
                         <span>
                             Potential Difference (V)
                         </span>
-                        <input type="text">
+                        <input type="text" onblur="updateData(this.parentElement.parentElement.parentElement, this, dataTypes.pd)">
                     </div>
                     <div>
                         <span class="panel-info">
