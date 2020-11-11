@@ -13,7 +13,7 @@
 
 <body>
 
-    <div class="properties-panel segment-panel">
+    <div tabindex="0" class="properties-panel segment-panel" id="segment-panel">
         <!-- Current -->
         <div>
             <span>
@@ -130,7 +130,7 @@
                 <div class="comp-junction-v"></div>
             </div>
 
-            <button id="compute-button">Compute</button>
+            <button id="compute-button" onclick="enterCurrentInputMode()">Compute</button>
 
         </div>
         <div class="toolbar-wrapper toolbar-overlay" id="connectmode-toolbar">

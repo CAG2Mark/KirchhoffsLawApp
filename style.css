@@ -435,6 +435,14 @@ body {
     z-index: 1000;
 }
 
+.segment-panel {
+    display: none;
+}
+
+.circuit-wire-inputting:focus-within .segment-panel {
+    display: block !important;
+}
+
 .resistor-panel, .cell-panel {
     left: 50%;
     transform: translate(-50%, 0);

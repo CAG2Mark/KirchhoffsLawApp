@@ -449,6 +449,9 @@ class Wire {
             newWire.classList.add(`circuit-wire-part`);
             newWire.classList.add(`circuit-wire-${i}`);
             wrapperStandard.appendChild(newWire);
+
+            // focusable
+            newWire.tabIndex = "0";
         }
 
         // part 2: hook connection
@@ -462,6 +465,9 @@ class Wire {
             newWire.classList.add(`circuit-wire-part`);
             newWire.classList.add(`circuit-wire-hook-${j}`);
             wrapperHook.appendChild(newWire);
+
+            // focusable
+            newWire.tabIndex = "0";
         }
 
         let newWire = document.createElement("div");
@@ -684,7 +690,7 @@ function findComponentFromBackend(backendComp) {
     for (var i = 0; i < allComponents.length; i++) {
 
         let comp = allComponents[i];
-        
+
         if (comp.backendComponent === backendComp) return comp;
 
     }
@@ -805,6 +811,9 @@ function isInToolbarArea() {
 }
 
 function onMouseMove(e) {
+    
+    mouseX = e.pageX;
+    mouseY = e.pageY;
 
     if (isConnectMode) return;
 
@@ -825,9 +834,6 @@ function onMouseMove(e) {
         if (isDragging) {
             currentDraggingElemComponent.reDrawWires();
         }
-
-        mouseX = e.pageX;
-        mouseY = e.pageY;
     }
 
     if (isInToolbarArea()) {
@@ -1125,14 +1131,24 @@ function updateData(elem, sender, type) {
     }
 }
 
-function compute() {
+function enterCurrentInputMode() {
+    // set up the new circuit
     var circuit = new Circuit();
+    // map frontend to backend
     circuit.components = allComponents.map(o => o.backendComponent);
     var segs = circuit.generateSegments();
 
+    // get the wires and display in the editor
     let segWires = [];
 
+    // init every
     segs.forEach(seg => {
+
+        // init variables for function parameters (note, chance of memory leak)
+        let x = seg;
+        let clone = document.getElementById("segment-panel").cloneNode(true);
+
+        // map backend gen'd segments to frontend
         let wires = [];
         seg.components.forEach(backendComp => {
             let comp = findComponentFromBackend(backendComp);
@@ -1141,20 +1157,38 @@ function compute() {
         });
         wires = wires.filter(onlyUnique);
 
+        // add to all segment list
         segWires.push(wires);
 
+        // create wrapper for all wires in a segment
         let wrap = document.createElement("span");
         circuitArea.appendChild(wrap);
 
+        // add the properties panel to the wrapper
+        wrap.appendChild(clone);
+
+        // init all the wries for data input
         wires.forEach(wire => {
             circuitArea.removeChild(wire.wireElem);
             wrap.appendChild(wire.wireElem);
-        })
 
+            let wireParts = Array.from(wire.wireElem.getElementsByClassName("circuit-wire-part"));
+
+            // set up click events
+            wireParts.forEach(wire => {
+                wire.onclick = () => wireClick(x, clone);
+            });
+        });
+
+        // set styles
         wrap.className = "circuit-wire-inputting";
+
+        // set up data input events
+        let textBox = clone.getElementsByClassName("circuit-input-element")[0];
+        textBox.onblur = () => x.current = textBox.value;
     });
 
-    
+
 
     // temp, for inputting wires
     return;
@@ -1179,6 +1213,11 @@ function compute() {
     let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
     console.log(eqns);
     console.log(solveSystem(eqns).symbol);
+}
+
+function wireClick(backendComp, elem) {
+    elem.style.left = mouseX + "px";
+    elem.style.top = mouseY + "px";
 }
 
 //#endregion
