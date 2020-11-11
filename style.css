@@ -389,6 +389,17 @@ body {
     left: 0;
 }
 
+
+.circuit-wire-inputting .circuit-wire-part {
+    background-color: rgb(253, 77, 77);
+}
+
+.circuit-wire-inputted .circuit-wire-part {
+    background-color: rgb(18, 104, 233);
+}
+
+
+
 /* #endregion */
 
 /* properties panel styles */
@@ -397,37 +408,42 @@ body {
     display: block;
 }
 
+
 .draggable:focus-within {
     border-color: rgb(54, 124, 204);
     z-index: 1000;
 }
 
-.dragging .properties-panel {
+.dragging .properties-panel, .connect-mode .properties-panel {
     display: none !important;
 }
 
 .properties-panel {
-    display: none;
 
     position: absolute;
-    top: calc(100% + 4px);
+
     width: 250px;
     background-color: rgba(255, 255, 255, 0.75);
     border: 2px solid #dfdfdf;
     padding: 8px;
     font-size: 18px;
-    left: 50%;
-    transform: translate(-50%, 0);
-    -webkit-transform: translate(-50%, 0);
-    -moz-transform: translate(-50%, 0);
-    -ms-transform: translate(-50%, 0);
-    -o-transform: translate(-50%, 0);
 
     cursor: default !important;
 
     backdrop-filter: blur(9px);
 
     z-index: 1000;
+}
+
+.resistor-panel, .cell-panel {
+    left: 50%;
+    transform: translate(-50%, 0);
+    -webkit-transform: translate(-50%, 0);
+    -moz-transform: translate(-50%, 0);
+    -ms-transform: translate(-50%, 0);
+    -o-transform: translate(-50%, 0);
+    top: calc(100% + 4px);
+    display: none;
 }
 
 input {

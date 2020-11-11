@@ -10,7 +10,9 @@ function removeFromArray(array, item) {
         if (array[i] === item) {
             array.splice(i, 1);
         }
+        return true;
     }
+    return false;
 }
 
 document.body.addEventListener('keydown', (e) => {
@@ -475,6 +477,8 @@ class Wire {
         this.reDrawWire();
 
         this.isDeleted = false;
+
+        allWires.push(this);
     }
 
     init() {
@@ -501,6 +505,8 @@ class Wire {
             setTimeout(() => {
                 circuitArea.removeChild(this.wireElem);
             }, 150);
+
+            removeFromArray(allWires, this);
         }
     }
 
@@ -646,6 +652,8 @@ class Wire {
 
 var allComponents = [];
 
+var allWires = [];
+
 function findComponentFromElem(elem, returnJunctionParent) {
 
     for (var i = 0; i < allComponents.length; i++) {
@@ -670,6 +678,17 @@ function findComponentFromElem(elem, returnJunctionParent) {
             }
         }
     }
+}
+
+function findComponentFromBackend(backendComp) {
+    for (var i = 0; i < allComponents.length; i++) {
+
+        let comp = allComponents[i];
+        
+        if (comp.backendComponent === backendComp) return comp;
+
+    }
+    return null;
 }
 
 //#endregion
@@ -1110,6 +1129,35 @@ function compute() {
     var circuit = new Circuit();
     circuit.components = allComponents.map(o => o.backendComponent);
     var segs = circuit.generateSegments();
+
+    let segWires = [];
+
+    segs.forEach(seg => {
+        let wires = [];
+        seg.components.forEach(backendComp => {
+            let comp = findComponentFromBackend(backendComp);
+            wires.push(comp.leftWire);
+            wires.push(comp.rightWire);
+        });
+        wires = wires.filter(onlyUnique);
+
+        segWires.push(wires);
+
+        let wrap = document.createElement("span");
+        circuitArea.appendChild(wrap);
+
+        wires.forEach(wire => {
+            circuitArea.removeChild(wire.wireElem);
+            wrap.appendChild(wire.wireElem);
+        })
+
+        wrap.className = "circuit-wire-inputting";
+    });
+
+    
+
+    // temp, for inputting wires
+    return;
 
     console.log("Beginning computation!");
 
