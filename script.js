@@ -100,8 +100,6 @@ class CircuitUIComponent {
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
 
-            if (this.head == null) console.log(this);
-
             // orthodox connections refer to left ro right or right to left connections
             isOrthodox = this.head.tail === this;
 
@@ -169,7 +167,6 @@ class CircuitUIComponent {
     setTail(elem, silent, isOrthodox) {
 
         this.setTailExtensions(elem);
-        console.log(this);
 
         // if elem is null, assume that its tail is being deleted
         if (!elem) {
@@ -196,8 +193,6 @@ class CircuitUIComponent {
 
         // assume is orthodox connection unless otherwise stated
         if (isOrthodox === undefined) isOrthodox = true;
-
-        if (!this.backendComponent) console.log(this);
 
         this.tail = elem;
         this.backendComponent.tail = elem.backendComponent;
@@ -281,10 +276,10 @@ class CircuitUIComponent {
         // arbitrary
         let nextIsHead = false;
 
-        if (approachingFrom instanceof Junction) {
-            if (approachingFrom.hJunc === this.head || approachingFrom.vJunc === this.head) {
+        if (approachingFrom instanceof CircuitJunction) {
+            if (approachingFrom.hComp === this.head || approachingFrom.vComp === this.head) {
                 nextIsHead = false; // redundant, but kept for consistency
-            } else if (approachingFrom.hJunc === this.tail || approachingFrom.vJunc === this.tail) {
+            } else if (approachingFrom.hComp === this.tail || approachingFrom.vComp === this.tail) {
                 nextIsHead = true;
             }
         } else {
@@ -343,7 +338,7 @@ class ComponentAnchor {
 // quick solution: just have the junction be treated in the UI "glue" as two separate components stiched together
 class CircuitJunction {
     constructor(juncRootElem) {
-        console.log("test");
+
 
         this.element = juncRootElem;
 
@@ -446,7 +441,6 @@ class JuncPartV extends CircuitUIComponent {
     }
 
     setTailExtensions(elem) {
-        console.log("tail extension set");
 
         this.parentJunc.addConnection(elem);
 
@@ -1307,6 +1301,7 @@ function enterCurrentInputMode() {
             for (var i = 0; i < seg.components.length; i++) {
                 if (arrContains(startElem.components, seg.components[i])) {
                     currentElem = findComponentFromBackend(seg.components[i]);
+                    break;
                 }
             }
 
@@ -1323,10 +1318,6 @@ function enterCurrentInputMode() {
 
             let nextData = currentElem.getNextComponent(prevElem);
 
-            console.log(prevElem);
-            console.log(currentElem);
-            console.log(stopElem);
-
             let curNextAnchor = nextData.curNextAnchor;
             let curPrevAnchor = nextData.curPrevAnchor;
             let nextAnchor = nextData.nextAnchor;
@@ -1337,24 +1328,16 @@ function enterCurrentInputMode() {
             currentElem = nextData.nextComp;
             prevElem = temp;
 
-            console.log([prevAnchor, curNextAnchor, nextAnchor]);
             let isGoingRightNext = curNextAnchor.left < nextAnchor.left;
             let isGoingDownNext = curNextAnchor.top < nextAnchor.top;
 
             let isGoingRightPrev = curPrevAnchor.left > prevAnchor.left;
             let isGoingDownPrev = curPrevAnchor.top > prevAnchor.top;
 
-            if (isGoingRightPrev) {
-                console.log([
-                    currentElem.element,
-                    curNextAnchor,
-                    prevAnchor,
-                    nextData.prevWire
-                ]);
-            }
-
             let nextWire = nextData.nextWire;
             let prevWire = nextData.prevWire;
+
+            console.log([seg, prevElem, currentElem, [prevAnchor, curNextAnchor, prevWire.wireElem], [curNextAnchor, nextAnchor, nextWire.wireElem]]);
 
 
             if (isGoingRightNext) {
@@ -1426,7 +1409,7 @@ function compute() {
 
         let sb = "";
         sols.forEach(sol => {
-            if (!sol[0].contains("backend")) {
+            if (!sol[0].includes("backend")) {
                 let s = sol[0] + " = " + sol[1] + "<br>";
                 sb += s;
             }
@@ -1463,7 +1446,6 @@ function wireClick(backendComp, elem) {
 
 //#endregion
 
-test();
 
 function test() {
     //#region TEST
