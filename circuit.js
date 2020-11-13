@@ -8,7 +8,6 @@ function arrIncludes(array, obj) {
     }
     return false;
 }
-
 function arr2DIncludes(array, obj) {
     for (var i = 0; i < array.length; i++) {
         if (arrEqual(array[i], obj))
@@ -16,7 +15,6 @@ function arr2DIncludes(array, obj) {
     }
     return false;
 }
-
 function loopsInclude(loops, loop) {
     for (var i = 0; i < loops.length; i++) {
         if (loopsEqual(loops[i], loop))
@@ -24,7 +22,6 @@ function loopsInclude(loops, loop) {
     }
     return false;
 }
-
 function loopsEqual(loop1, loop2) {
     if (loop1.segments.length != loop2.segments.length)
         return false;
@@ -44,7 +41,6 @@ function loopsEqual(loop1, loop2) {
     }
     return true;
 }
-
 function arrRemove(ogArr, obj) {
     let array = [...ogArr];
     for (var i = 0; i < array.length; i++) {
@@ -66,7 +62,6 @@ function arrEqual(_arr1, _arr2) {
     }
     return true;
 }
-
 function segmentsEqual(seg1, seg2) {
     if (seg1.components.length != seg2.components.length)
         return false;
@@ -89,15 +84,14 @@ function segmentsEqual(seg1, seg2) {
 //#endregion
 // for generating component ids
 var curIdNo = 0;
-
 function getId() {
     curIdNo++;
     return curIdNo;
 }
 // suffixes
-var resistanceSuffix = "res";
-var pdSuffix = "pd";
-var emfSuffix = "emf";
+var resistanceSuffix = "backend_res";
+var pdSuffix = "backend_pd";
+var emfSuffix = "backend_emf";
 class Cell {
     constructor(emf) {
         this.emf = emf;
@@ -128,10 +122,10 @@ class Cell {
             negative = !negative;
         }
         return (
-                // negative sign
-                negative ? "-" : "") +
+        // negative sign
+        negative ? "-(" : "(") +
             // variable or number
-            (this.emf == null ? this.compId : this.emf.toString());
+            (this.emf == null ? this.compId : this.emf.toString()) + ")";
     }
     // the previous component specifies where this component was approached from
     toNextComponent(previousComponent) {
@@ -149,8 +143,9 @@ class Resistor {
     constructor() {
         this.compId = "res" + getId();
     }
-    approachFrom(component) {}
-    toNextComponent(previousComponent) {}
+    approachFrom(component) {
+    }
+    toNextComponent(previousComponent) { }
     getNextComponent(previousComponent) {
         return (previousComponent === this.tail) ? this.head : this.tail;
     }
@@ -159,8 +154,10 @@ class Junction {
     constructor() {
         this.components = [];
     }
-    approachFrom(component) {}
-    toNextComponent(reviousComponent) {}
+    approachFrom(component) {
+    }
+    toNextComponent(reviousComponent) {
+    }
     getNextComponent(previousComponent) {
         return null;
     }
@@ -259,7 +256,8 @@ class Circuit {
                     foundLoops.push(newLoop);
                 }
             });
-        };
+        }
+        ;
         return foundLoops;
     }
     // recursive function to find all the branches possible
@@ -269,13 +267,15 @@ class Circuit {
         let foundSegments = Circuit.findSegmentsFromJunction(startJunc, segments);
         if (foundSegments.length == 0) {
             return null;
-        };
+        }
+        ;
         let found = [];
         foundSegments.forEach(foundSegment => {
             // BASE CASE. if it has succesfully returned to the end junction then it was successful.
             if (arrIncludes(foundSegment.getJunctionIds(), endJunc.id)) {
                 found.push([foundSegment]);
-            } else {
+            }
+            else {
                 // Copy the working segments and remove the current found segment.
                 // This means that there will be no paths where one loop crosses the same segment twice.
                 let workingSegments = [...segments];
@@ -349,6 +349,7 @@ class Loop {
         curJunction = next;
         // Initialize with the starting cell already there.
         let law2Expressions = [startingCell.getDeltaEmfEquation(findParentSegment(startingCell, this.segments), curJunction)];
+        let pdEqns = [];
         while (curComponent !== startingCell) {
             if (curComponent instanceof Junction) {
                 let junc = curComponent;
@@ -372,16 +373,19 @@ class Loop {
                     if (breakFlag)
                         break;
                 }
-            } else {
+            }
+            else {
                 // find the current segment
                 let curSegment = findParentSegment(curComponent, this.segments);
                 if (curComponent instanceof Cell) {
                     law2Expressions.push(curComponent.getDeltaEmfEquation(curSegment, curJunction));
-                } else {
+                }
+                else {
                     let eqns = generatePdEquation(curSegment, curComponent, curJunction);
                     law2Expressions.push(eqns[0][0]);
+                    pdEqns.push(eqns[1][0]);
                     // add vars
-                    variables = variables.concat(eqns[1]);
+                    variables = variables.concat(eqns[2]);
                 }
                 let temp = curComponent;
                 curComponent = curComponent.getNextComponent(prevComponent);
@@ -409,12 +413,9 @@ class Loop {
             law1Equations.push(equation);
         });
         //#endregion
-        return [
-            [law2Equation], law1Equations, variables
-        ];
+        return [[law2Equation], law1Equations, pdEqns, variables];
     }
 }
-
 function findParentSegment(componentToFind, segments) {
     for (var i = 0; i < segments.length; i++) {
         let seg = segments[i];
@@ -432,17 +433,18 @@ function generatePdEquation(segment, comp, approachingJunction) {
     let isNegative = approachingJunction === segment.endJunction;
     let curStr = segment.current == null ?
         (isNegative ? "-" : "") + segment.compId :
-        (isNegative ? "-" : "") + "(" + segment.compId + ")";
+        (isNegative ? "-" : "") + "(" + segment.current + ")";
+    let curStrNeutral = segment.current == null ?
+        segment.compId : "(" + segment.current + ")";
     //let curStr:string = "somecurrent";
-    let resStr = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
+    let resStr = comp.resistance == null ? comp.compId + resistanceSuffix : comp.resistance.toString();
+    let pdStr = comp.pd == null ? comp.compId + pdSuffix : comp.pd.toString();
     let variables = [];
     if (segment.current == null)
         variables.push(segment.compId);
     if (comp.resistance == null)
         variables.push(comp.compId + resistanceSuffix);
-    return [
-        ["((" + curStr + ") * (" + resStr + "))"], variables
-    ];
+    return [["((" + curStr + ") * (" + resStr + "))"], ["0 = -" + pdStr + " + ((" + curStrNeutral + ") * (" + resStr + "))"], variables];
 }
 // Represents a segment of the circuit where the current is constant, ie between junctions. 
 class Segment {
@@ -451,7 +453,7 @@ class Segment {
         if (components != null) {
             this.components = components;
         }
-        this.compId = "current" + getId();
+        this.compId = "backend_current" + getId();
     }
     getJunctionIds() {
         return [
@@ -463,8 +465,9 @@ class Segment {
         let isNegative = outputJunction === this.startJunction;
         if (this.current == null) {
             return (isNegative ? "-" : "") + this.compId;
-        } else {
-            return (isNegative ? "-" : "") + "(" + this.compId + ")";
+        }
+        else {
+            return (isNegative ? "-" : "") + "(" + this.current + ")";
         }
     }
 }

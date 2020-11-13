@@ -299,10 +299,14 @@ class CircuitUIComponent {
         let nextWire = nextIsHead ? this.rightWire : this.leftWire;
         let prevWire = !nextIsHead ? this.rightWire : this.leftWire;
 
-        console.log(this);
-
-        let nextAnchor = nextWire.getNextAnchor(nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
-        let prevAnchor = prevWire.getNextAnchor(!nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
+        let nextAnchor;
+        let prevAnchor;
+        if (nextWire) {
+            nextAnchor = nextWire.getNextAnchor(nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
+        }
+        if (prevWire) {
+            prevAnchor = prevWire.getNextAnchor(!nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
+        }
 
         return {
             nextComp: nextComp,
@@ -1208,17 +1212,28 @@ function updateData(elem, sender, type) {
 
 var isCurrentInputMode = false;
 
+var circuit;
+var segs;
+
 function enterCurrentInputMode() {
+
+    if (isCurrentInputMode) {
+        compute();
+        return;
+    }
+
+    document.getElementById("compute-button").innerHTML = "Compute";
+    document.getElementById("compute-info").style.display = "block";
 
     isCurrentInputMode = true;
 
     document.body.classList.add("current-input-mode");
 
     // set up the new circuit
-    var circuit = new Circuit();
+    circuit = new Circuit();
     // map frontend to backend
     circuit.components = allComponents.map(o => o.backendComponent);
-    var segs = circuit.generateSegments();
+    segs = circuit.generateSegments();
 
     // get the wires and display in the editor
     let segWires = [];
@@ -1302,7 +1317,7 @@ function enterCurrentInputMode() {
         }
 
         let firstExec = true;
-        while (!(currentElem === stopElem || currentElem !== stopElem.hHunc || currentElem !== stopElem.vJunc) ||  firstExec) {
+        while (!(currentElem === stopElem || currentElem instanceof JuncPartH || currentElem instanceof JuncPartV) || firstExec) {
 
             firstExec = false;
 
@@ -1322,6 +1337,7 @@ function enterCurrentInputMode() {
             currentElem = nextData.nextComp;
             prevElem = temp;
 
+            console.log([prevAnchor, curNextAnchor, nextAnchor]);
             let isGoingRightNext = curNextAnchor.left < nextAnchor.left;
             let isGoingDownNext = curNextAnchor.top < nextAnchor.top;
 
@@ -1334,11 +1350,12 @@ function enterCurrentInputMode() {
                     curNextAnchor,
                     prevAnchor,
                     nextData.prevWire
-                ])
+                ]);
             }
 
             let nextWire = nextData.nextWire;
             let prevWire = nextData.prevWire;
+
 
             if (isGoingRightNext) {
                 nextWire.wireElem.classList.add("current-right");
@@ -1361,7 +1378,9 @@ function enterCurrentInputMode() {
 
         // set up data input events
         let textBox = clone.getElementsByClassName("circuit-input-element")[0];
-        textBox.onblur = () => x.current = textBox.value;
+        textBox.onblur = () => {
+            x.current = textBox.value;
+        };
     });
 
 
@@ -1369,26 +1388,66 @@ function enterCurrentInputMode() {
     // temp, for inputting wires
     return;
 
+}
+
+function compute() {
+    showSideBar();
+
+
     console.log("Beginning computation!");
 
-    var loops = circuit.generateLoops(segs);
+    try {
 
-    let law1Eqns = [];
-    let law2Eqns = [];
-    let vars = [];
+        var loops = circuit.generateLoops(segs);
 
-    loops.forEach(loop => {
-        let eqns = loop.generateEquations(segs);
-        law1Eqns = law1Eqns.concat(eqns[1]);
-        law2Eqns = law2Eqns.concat(eqns[0]);
-        vars = vars.concat(eqns[2]);
-    });
+        let law1Eqns = [];
+        let law2Eqns = [];
+        let pdEqns = [];
+        let vars = [];
 
-    vars = vars.filter(onlyUnique);
+        loops.forEach(loop => {
+            let eqns = loop.generateEquations(segs);
+            law1Eqns = law1Eqns.concat(eqns[1]);
+            law2Eqns = law2Eqns.concat(eqns[0]);
+            pdEqns = pdEqns.concat(eqns[2]);
+            vars = vars.concat(eqns[2]);
+        });
 
-    let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
-    console.log(eqns);
-    console.log(solveSystem(eqns).symbol);
+        console.log(law1Eqns);
+        console.log(law2Eqns);
+        console.log(pdEqns.filter(onlyUnique));
+
+
+        vars = vars.filter(onlyUnique);
+
+        let eqns = simplifySystem(law2Eqns, law1Eqns, pdEqns);
+
+        let sols = solveSystem(eqns).symbol;
+
+        let sb = "";
+        sols.forEach(sol => {
+            if (!sol[0].contains("backend")) {
+                let s = sol[0] + " = " + sol[1] + "<br>";
+                sb += s;
+            }
+        });
+
+        document.getElementById("results-output").innerHTML = sb;
+    }
+    catch (error) {
+        alert("Error computing! The error is as follows: \n \n" + error.toString());
+    }
+
+
+}
+
+function showSideBar() {
+    document.getElementById("sidebar").classList.add("sidebar-visible");
+}
+
+
+function hideSideBar() {
+    document.getElementById("sidebar").classList.remove("sidebar-visible");
 }
 
 function wireClick(backendComp, elem) {
@@ -1412,6 +1471,8 @@ function test() {
     let cell1 = new Cell(6);
     let res1 = new Resistor();
     res1.resistance = 2;
+    res1.pd = "x";
+
     let res2 = new Resistor();
     res2.resistance = 2;
     let res3 = new Resistor();
@@ -1445,18 +1506,25 @@ function test() {
 
     let law1Eqns = [];
     let law2Eqns = [];
+    let pdEqns = [];
     let vars = [];
 
     loops.forEach(loop => {
         let eqns = loop.generateEquations(segs);
         law1Eqns = law1Eqns.concat(eqns[1]);
         law2Eqns = law2Eqns.concat(eqns[0]);
+        pdEqns = pdEqns.concat(eqns[2]);
         vars = vars.concat(eqns[2]);
     });
 
+    console.log(law1Eqns);
+    console.log(law2Eqns);
+    console.log(pdEqns.filter(onlyUnique));
+
+
     vars = vars.filter(onlyUnique);
 
-    let eqns = simplifySystem(law2Eqns, law1Eqns, vars.length);
+    let eqns = simplifySystem(law2Eqns, law1Eqns, pdEqns);
     console.log(eqns);
     console.log(solveSystem(eqns).symbol);
 

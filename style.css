@@ -443,6 +443,12 @@ body {
 
 /* #endregion */
 
+#compute-info {
+    display: none !important;
+    font-size: 24px;
+    margin: 12px 16px 16px 16px;
+}
+
 /* properties panel styles */
 
 .draggable:focus-within .properties-panel {
@@ -639,3 +645,32 @@ input:focus {
 button:focus {
     outline: 0;
 }
+
+/* sidebar*/
+
+#sidebar {
+    height: calc(100%);
+    width: 350px;
+
+    z-index: 5000;
+    
+    position: absolute;
+    right: -400px;
+    top: 0;
+    background-color: white;
+
+    border-left: solid 2px #CCCCCC;
+
+    padding: 16px;
+
+    transition: 250ms right ease;
+}
+
+#results-output {
+    font-size: 18px;
+}
+
+.sidebar-visible {
+    right: 0 !important;
+}
+

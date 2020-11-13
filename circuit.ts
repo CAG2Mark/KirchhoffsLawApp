@@ -112,9 +112,9 @@ function getId():number {
 }
 
 // suffixes
-var resistanceSuffix = "res";
-var pdSuffix = "pd";
-var emfSuffix = "emf";
+var resistanceSuffix = "backend_res";
+var pdSuffix = "backend_pd";
+var emfSuffix = "backend_emf";
 
 interface ICircuitPart {
 
@@ -195,9 +195,9 @@ class Cell implements IComponent {
 
         return (
             // negative sign
-            negative ? "-" : "") + 
+            negative ? "-(" : "(") + 
             // variable or number
-            (this.emf == null ? this.compId : this.emf.toString());
+            (this.emf == null ? this.compId : this.emf.toString()) + ")";
     }
 
     // the previous component specifies where this component was approached from
@@ -518,6 +518,8 @@ class Loop {
 
         // Initialize with the starting cell already there.
         let law2Expressions:string[] = [ startingCell.getDeltaEmfEquation(findParentSegment(startingCell, this.segments), curJunction) ];
+
+        let pdEqns:string[] = [];
         
         while (curComponent !== startingCell) {
 
@@ -556,8 +558,9 @@ class Loop {
                 else {
                     let eqns = generatePdEquation(curSegment, curComponent, curJunction);
                     law2Expressions.push(eqns[0][0]);
+                    pdEqns.push(eqns[1][0]);
                     // add vars
-                    variables = variables.concat(eqns[1]);
+                    variables = variables.concat(eqns[2]);
                 }
 
                 let temp = curComponent;
@@ -599,7 +602,7 @@ class Loop {
 
         //#endregion
 
-        return [[law2Equation], law1Equations, variables];
+        return [[law2Equation], law1Equations, pdEqns, variables];
     }
 }
 
@@ -625,16 +628,22 @@ function generatePdEquation(segment:Segment, comp:IComponent, approachingJunctio
 
     let curStr:string = segment.current == null ? 
         (isNegative ? "-" : "" ) + segment.compId : 
-        (isNegative ? "-" : "" ) + "(" + segment.compId + ")";
+        (isNegative ? "-" : "" ) + "(" + segment.current + ")";
+
+    let curStrNeutral:string = segment.current == null ? 
+        segment.compId : "(" + segment.current + ")";
+
     //let curStr:string = "somecurrent";
-    let resStr:string = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
+    let resStr:string = comp.resistance == null ? comp.compId + resistanceSuffix : comp.resistance.toString();
+
+    let pdStr:string = comp.pd == null ? comp.compId + pdSuffix : comp.pd.toString();
 
     let variables:string[] = [];
 
     if (segment.current == null) variables.push(segment.compId);
     if (comp.resistance == null) variables.push(comp.compId + resistanceSuffix);
 
-    return [["((" + curStr + ") * (" + resStr + "))"], variables];
+    return [["((" + curStr + ") * (" + resStr + "))"], ["0 = -" + pdStr + " + ((" + curStrNeutral + ") * (" + resStr + "))"], variables];
 }
 
 // Represents a segment of the circuit where the current is constant, ie between junctions. 
@@ -651,7 +660,7 @@ class Segment {
             this.components = components;
         }
 
-        this.compId = "current" + getId();
+        this.compId = "backend_current" + getId();
 
     }
 
@@ -672,7 +681,7 @@ class Segment {
             return (isNegative ? "-" : "") + this.compId;
         }
         else {
-            return (isNegative ? "-" : "") + "(" + this.compId + ")";
+            return (isNegative ? "-" : "") + "(" + this.current + ")";
         }
     }
 }
