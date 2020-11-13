@@ -7,7 +7,25 @@ function onlyUnique(value, index, self) {
     return self.indexOf(value) == index;
 }
 
-function simplifySystem(loopEquations, circuitEquations, varCount) {
+// mathematically, you can always find the solution to a system of equations with n variables and n equations,
+// given they are all correct
+function simplifySystem(loopEquations, circuitEquations) {
+
+    // get var count
+
+    let vars = [];
+
+    loopEquations.concat(circuitEquations).forEach(eqn => {
+        let expr = eqn.replace(" = 0", "");
+        let eqnPars = nerdamer(expr);
+        eqnPars.variables().forEach(variable => {
+            vars.push(variable);
+        })
+    });
+
+    vars = vars.filter(onlyUnique);
+
+    let varCount = vars.length;
 
     // remove redundant equations from both arrays
 

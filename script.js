@@ -15,6 +15,15 @@ function removeFromArray(array, item) {
     return false;
 }
 
+function arrContains(array, item) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === item) {
+            return true;
+        }
+    }
+    return false;
+}
+
 document.body.addEventListener('keydown', (e) => {
     if (e.key == "Escape") {
         if (isConnectMode) {
@@ -265,6 +274,38 @@ class CircuitUIComponent {
         if (this.tail)
             this.setTail(null);
     }
+
+    getNextComponent(approachingFrom) {
+        let nextComp;
+
+        // arbitrary
+        let nextIsHead = false;
+
+        if (approachingFrom === this.head) {
+            nextIsHead = false; // redundant, but kept for consistency
+        } else if (approachingFrom === this.tail) {
+            nextIsHead = true;
+        }
+        else return null;
+
+        nextComp = nextIsHead ? this.head : this.tail;
+        let nextWire = nextIsHead ? this.rightWire : this.leftWire;
+        let prevWire = !nextIsHead ? this.rightWire : this.leftWire;
+
+        let nextAnchor = nextWire.getNextAnchor(nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
+        let prevAnchor = prevWire.getNextAnchor(!nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
+
+        return {
+            nextComp: nextComp, 
+            nextWire: nextWire, 
+            prevWire: prevWire,
+            nextAnchor: nextAnchor,
+            curNextAnchor: nextIsHead ? this.getRightAnchor() : this.getLeftAnchor(),
+            curPrevAnchor: !nextIsHead ? this.getRightAnchor() : this.getLeftAnchor(),
+            prevAnchor: prevAnchor
+        };
+
+    }
 }
 
 // will act like a struct, but uses class as struct isn't in native javascript
@@ -450,6 +491,12 @@ class Wire {
             newWire.classList.add(`circuit-wire-${i}`);
             wrapperStandard.appendChild(newWire);
 
+            let arrow = document.createElement("div");
+            arrow.classList.add("wire-arrow");
+            arrow.classList.add(i % 2 == 0 ? "arrow-horiz" : "arrow-vert");
+
+            newWire.appendChild(arrow);
+
             // focusable
             newWire.tabIndex = "0";
         }
@@ -465,6 +512,12 @@ class Wire {
             newWire.classList.add(`circuit-wire-part`);
             newWire.classList.add(`circuit-wire-hook-${j}`);
             wrapperHook.appendChild(newWire);
+
+            let arrow = document.createElement("div");
+            arrow.classList.add("wire-arrow");
+            arrow.classList.add("arrow-vert");
+
+            newWire.appendChild(arrow);
 
             // focusable
             newWire.tabIndex = "0";
@@ -542,6 +595,9 @@ class Wire {
                 break;
 
         }
+
+        this.anchor1 = anchor1;
+        this.anchor2 = anchor2;
 
         // first position the wire
         this.wireElem.style.left = Math.min(anchor1.left, anchor2.left) + "px";
@@ -654,6 +710,11 @@ class Wire {
         }
 
     }
+
+    getNextAnchor(check) {
+        if (check.left == this.anchor1.left && check.top == this.anchor1.top) return this.anchor2;
+        else return this.anchor1;
+    }
 }
 
 var allComponents = [];
@@ -712,6 +773,8 @@ var currentDraggingBaseElem;
 
 function draggableBaseMouseDown(elem) {
 
+    if (isCurrentInputMode) return;
+
     // clone the element and add the dragging class
     let clone = elem.cloneNode(true);
 
@@ -753,6 +816,8 @@ var isDragging = false;
 var currentDraggingBaseElem;
 
 function draggableMouseDown(elem) {
+
+    if (isCurrentInputMode) return;
 
     if (isConnectMode) return;
 
@@ -811,7 +876,7 @@ function isInToolbarArea() {
 }
 
 function onMouseMove(e) {
-    
+
     mouseX = e.pageX;
     mouseY = e.pageY;
 
@@ -1131,7 +1196,14 @@ function updateData(elem, sender, type) {
     }
 }
 
+var isCurrentInputMode = false;
+
 function enterCurrentInputMode() {
+
+    isCurrentInputMode = true;
+
+    document.body.classList.add("current-input-mode");
+
     // set up the new circuit
     var circuit = new Circuit();
     // map frontend to backend
@@ -1180,6 +1252,88 @@ function enterCurrentInputMode() {
             });
         });
 
+        // draw arrows
+
+        let startElem;
+        let currentElem;
+        let prevElem;
+        let stopElem;
+        
+        // case 1: it's just a single loop
+        if (!seg.startJunction) {
+        
+            for (var i = 0; i < seg.components.length; i++) {
+                if (seg.components[i] instanceof Cell) {
+                    startElem = seg.components[i];
+                    break;
+                }
+            }
+
+            currentElem = findComponentFromBackend(startElem.getNextLogicalComponent());
+            startElem = findComponentFromBackend(startElem);
+            prevElem = startElem;
+
+            stopElem = currentElem;
+        }
+        
+        else {
+            // find the first element
+            startElem = seg.startJunction;
+
+            
+        }
+
+        let firstExec = true;
+        while (currentElem !== stopElem || firstExec) {
+
+            firstExec = false;
+
+            let nextData = currentElem.getNextComponent(prevElem);
+
+            let curNextAnchor = nextData.curNextAnchor;
+            let curPrevAnchor = nextData.curPrevAnchor;
+            let nextAnchor = nextData.nextAnchor;
+            let prevAnchor = nextData.prevAnchor;
+
+            // shift
+            let temp = currentElem;
+            currentElem = nextData.nextComp;
+            prevElem = temp;
+            
+            let isGoingRightNext = curNextAnchor.left < nextAnchor.left;
+            let isGoingDownNext = curNextAnchor.top < nextAnchor.top;
+
+            let isGoingRightPrev = curPrevAnchor.left > prevAnchor.left;
+            let isGoingDownPrev = curPrevAnchor.top > prevAnchor.top;
+
+            if (isGoingRightPrev) {
+                console.log([
+                    currentElem.element,
+                    curNextAnchor,
+                    prevAnchor,
+                    nextData.prevWire
+                ])
+            }
+
+            let nextWire = nextData.nextWire;
+            let prevWire = nextData.prevWire;
+
+            if (isGoingRightNext) {
+                nextWire.wireElem.classList.add("current-right");
+            }
+            if (isGoingDownNext) {
+                nextWire.wireElem.classList.add("current-down");
+            }
+
+            if (isGoingRightPrev) {
+                prevWire.wireElem.classList.add("current-right");
+            }
+            if (isGoingDownPrev) {
+                prevWire.wireElem.classList.add("current-down");
+            }
+            
+        }
+
         // set styles
         wrap.className = "circuit-wire-inputting";
 
@@ -1227,6 +1381,8 @@ function wireClick(backendComp, elem) {
 //#endregion
 
 //#endregion
+
+test();
 
 function test() {
     //#region TEST

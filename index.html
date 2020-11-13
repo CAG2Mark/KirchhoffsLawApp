@@ -53,7 +53,7 @@
                     <button onmousedown="createJuncRight(this.parentElement.parentElement)">Create junction</button>
                 </div>
 
-                <div class="properties-panel resistor-panel">
+                <div class="properties-panel cell-panel">
                     <!-- EMF (V) -->
                     <div>
                         <span>
@@ -64,6 +64,11 @@
                     <div>
                         <span class="panel-info">
                             <i>Input a variable or a number; leave blank if unknown</i>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="panel-info">
+                            <i>Enter a negative number for the reverse direction</i>
                         </span>
                     </div>
                 </div>
@@ -130,7 +135,7 @@
                 <div class="comp-junction-v"></div>
             </div>
 
-            <button id="compute-button" onclick="enterCurrentInputMode()">Compute</button>
+            <button id="compute-button" onclick="enterCurrentInputMode()">Next</button>
 
         </div>
         <div class="toolbar-wrapper toolbar-overlay" id="connectmode-toolbar">
