@@ -1,13 +1,6 @@
 // ASSUME CONVENTIONAL CIRCUITS
 // CURRENT FLOWS FROM +ve TO -ve
 //#region helpers
-
-function isNumeric(str) {
-    if (typeof str != "string") return false // we only process strings!  
-    return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-        !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
-}
-
 function arrIncludes(array, obj) {
     for (var i = 0; i < array.length; i++) {
         if (array[i] === obj)
@@ -109,7 +102,7 @@ class Cell {
     constructor(emf) {
         this.emf = emf;
         this.pd = emf;
-        this.resistance = 0;
+        this.resistance = "0";
         this.remainingEmf = emf;
         this.isTailToHead = false;
         this.compId = "cell" + getId();
@@ -119,11 +112,11 @@ class Cell {
         // if approaching from the tail (the negative terminal)
         // then it charges the cell.
         if (component === this.tail) {
-            deltaEmf = -deltaEmf;
+            deltaEmf = "-(" + deltaEmf + ")";
         }
         // but reverse it again if it the cell is inverted
         if (this.isTailToHead) {
-            deltaEmf = -deltaEmf;
+            deltaEmf = "-(" + deltaEmf + ")";
         }
         this.remainingEmf = component.remainingEmf + deltaEmf;
         this.toNextComponent(component);
@@ -163,14 +156,13 @@ class Resistor {
     }
 }
 class Junction {
+    constructor() {
+        this.components = [];
+    }
     approachFrom(component) {}
     toNextComponent(reviousComponent) {}
     getNextComponent(previousComponent) {
         return null;
-    }
-        
-    constructor() {
-        this.components = [];
     }
 }
 //  HIERARCHY:
@@ -440,26 +432,17 @@ function generatePdEquation(segment, comp, approachingJunction) {
     let isNegative = approachingJunction === segment.endJunction;
     let curStr = segment.current == null ?
         (isNegative ? "-" : "") + segment.compId :
-        ((isNegative ? -1 : 1) * segment.current).toString();
+        (isNegative ? "-" : "") + "(" + segment.compId + ")";
     //let curStr:string = "somecurrent";
     let resStr = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
     let variables = [];
     if (segment.current == null)
         variables.push(segment.compId);
-    else if (!isNumeric(segment.current))
-        variables.push(segment.current);
-
     if (comp.resistance == null)
         variables.push(comp.compId + resistanceSuffix);
     return [
         ["((" + curStr + ") * (" + resStr + "))"], variables
     ];
-}
-
-function generateResistanceEquation(segment, comp) {
-    let curStr = segment.current == null ? segment.compId : segment.current.toString();
-    let pdStr = comp.pd == null ? segment.compId + pdSuffix : comp.pd.toString();
-    return "((" + curStr + ") * (" + pdStr + "))";
 }
 // Represents a segment of the circuit where the current is constant, ie between junctions. 
 class Segment {
@@ -481,7 +464,7 @@ class Segment {
         if (this.current == null) {
             return (isNegative ? "-" : "") + this.compId;
         } else {
-            return ((isNegative ? -1 : 1) * this.current).toString();
+            return (isNegative ? "-" : "") + "(" + this.compId + ")";
         }
     }
 }

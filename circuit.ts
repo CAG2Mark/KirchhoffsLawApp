@@ -124,9 +124,9 @@ interface IComponent {
     tail: IComponent;
     head: IComponent;
 
-    pd: number; // voltage
-    resistance: number;
-    remainingEmf: number;
+    pd: string; // voltage
+    resistance: string;
+    remainingEmf: string;
 
     compId: string;
 
@@ -146,21 +146,21 @@ class Cell implements IComponent {
     tail: IComponent;
     head: IComponent;
 
-    pd: number;
-    resistance: number;
-    remainingEmf: number;
+    pd: string;
+    resistance: string;
+    remainingEmf: string;
 
     compId: string;
 
-    emf: number;
+    emf: string;
 
     // Changes it so that current flows from the tail to head
     isTailToHead: boolean;
 
-    constructor(emf?:number) {
+    constructor(emf?:string) {
         this.emf = emf;
         this.pd = emf;
-        this.resistance = 0;
+        this.resistance = "0";
         this.remainingEmf = emf;
         this.isTailToHead = false;
 
@@ -172,12 +172,12 @@ class Cell implements IComponent {
         // if approaching from the tail (the negative terminal)
         // then it charges the cell.
         if (component === this.tail) {
-            deltaEmf = -deltaEmf
+            deltaEmf = "-(" + deltaEmf + ")";
         }
 
         // but reverse it again if it the cell is inverted
         if (this.isTailToHead) {
-            deltaEmf = -deltaEmf
+            deltaEmf = "-(" + deltaEmf + ")";
         }
 
         this.remainingEmf = component.remainingEmf + deltaEmf;
@@ -220,9 +220,9 @@ class Resistor implements IComponent {
     tail: IComponent;
     head: IComponent;
 
-    pd: number;
-    resistance: number;
-    remainingEmf: number;
+    pd: string;
+    resistance: string;
+    remainingEmf: string;
 
     compId: string;
 
@@ -251,9 +251,9 @@ class Junction implements IComponent {
 
     components: IComponent[];
 
-    pd: number; // voltage
-    resistance: number;
-    remainingEmf: number;
+    pd: string; // voltage
+    resistance: string;
+    remainingEmf: string;
 
     approachFrom(component: IComponent) {
 
@@ -625,7 +625,7 @@ function generatePdEquation(segment:Segment, comp:IComponent, approachingJunctio
 
     let curStr:string = segment.current == null ? 
         (isNegative ? "-" : "" ) + segment.compId : 
-        ((isNegative ? -1 : 1 ) * segment.current).toString();
+        (isNegative ? "-" : "" ) + "(" + segment.compId + ")";
     //let curStr:string = "somecurrent";
     let resStr:string = comp.resistance == null ? segment.compId + resistanceSuffix : comp.resistance.toString();
 
@@ -645,7 +645,7 @@ class Segment {
     components: IComponent[] = [];
 
     // The direction of the current is from START to END.
-    current: number;
+    current: string;
     constructor(components ? : IComponent[]) {
         if (components != null) {
             this.components = components;
@@ -672,7 +672,7 @@ class Segment {
             return (isNegative ? "-" : "") + this.compId;
         }
         else {
-            return ((isNegative ? -1 : 1) * this.current).toString();
+            return (isNegative ? "-" : "") + "(" + this.compId + ")";
         }
     }
 }

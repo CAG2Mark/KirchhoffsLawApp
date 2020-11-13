@@ -409,6 +409,11 @@ body {
     position: absolute;
     top: calc(50% - 15px);
     left: calc(50% - 15px);
+    display: none;
+}
+
+.circuit-wire-inputting .wire-arrow {
+    display: block !important;
 }
 
 .current-down .arrow-vert, .current-right .arrow-horiz {

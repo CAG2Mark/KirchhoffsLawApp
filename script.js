@@ -281,23 +281,32 @@ class CircuitUIComponent {
         // arbitrary
         let nextIsHead = false;
 
-        if (approachingFrom === this.head) {
-            nextIsHead = false; // redundant, but kept for consistency
-        } else if (approachingFrom === this.tail) {
-            nextIsHead = true;
+        if (approachingFrom instanceof Junction) {
+            if (approachingFrom.hJunc === this.head || approachingFrom.vJunc === this.head) {
+                nextIsHead = false; // redundant, but kept for consistency
+            } else if (approachingFrom.hJunc === this.tail || approachingFrom.vJunc === this.tail) {
+                nextIsHead = true;
+            }
+        } else {
+            if (approachingFrom === this.head) {
+                nextIsHead = false; // redundant, but kept for consistency
+            } else if (approachingFrom === this.tail) {
+                nextIsHead = true;
+            }
         }
-        else return null;
 
         nextComp = nextIsHead ? this.head : this.tail;
         let nextWire = nextIsHead ? this.rightWire : this.leftWire;
         let prevWire = !nextIsHead ? this.rightWire : this.leftWire;
 
+        console.log(this);
+
         let nextAnchor = nextWire.getNextAnchor(nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
         let prevAnchor = prevWire.getNextAnchor(!nextIsHead ? this.getRightAnchor() : this.getLeftAnchor());
 
         return {
-            nextComp: nextComp, 
-            nextWire: nextWire, 
+            nextComp: nextComp,
+            nextWire: nextWire,
             prevWire: prevWire,
             nextAnchor: nextAnchor,
             curNextAnchor: nextIsHead ? this.getRightAnchor() : this.getLeftAnchor(),
@@ -307,6 +316,7 @@ class CircuitUIComponent {
 
     }
 }
+
 
 // will act like a struct, but uses class as struct isn't in native javascript
 class ComponentAnchor {
@@ -1258,10 +1268,10 @@ function enterCurrentInputMode() {
         let currentElem;
         let prevElem;
         let stopElem;
-        
+
         // case 1: it's just a single loop
         if (!seg.startJunction) {
-        
+
             for (var i = 0; i < seg.components.length; i++) {
                 if (seg.components[i] instanceof Cell) {
                     startElem = seg.components[i];
@@ -1274,21 +1284,33 @@ function enterCurrentInputMode() {
             prevElem = startElem;
 
             stopElem = currentElem;
-        }
-        
-        else {
+        } else {
             // find the first element
             startElem = seg.startJunction;
 
-            
+            // find the next element of the junction
+            for (var i = 0; i < seg.components.length; i++) {
+                if (arrContains(startElem.components, seg.components[i])) {
+                    currentElem = findComponentFromBackend(seg.components[i]);
+                }
+            }
+
+            prevElem = findComponentFromBackend(startElem);
+
+            stopElem = findComponentFromBackend(seg.endJunction);
+
         }
 
         let firstExec = true;
-        while (currentElem !== stopElem || firstExec) {
+        while (!(currentElem === stopElem || currentElem !== stopElem.hHunc || currentElem !== stopElem.vJunc) ||  firstExec) {
 
             firstExec = false;
 
             let nextData = currentElem.getNextComponent(prevElem);
+
+            console.log(prevElem);
+            console.log(currentElem);
+            console.log(stopElem);
 
             let curNextAnchor = nextData.curNextAnchor;
             let curPrevAnchor = nextData.curPrevAnchor;
@@ -1299,7 +1321,7 @@ function enterCurrentInputMode() {
             let temp = currentElem;
             currentElem = nextData.nextComp;
             prevElem = temp;
-            
+
             let isGoingRightNext = curNextAnchor.left < nextAnchor.left;
             let isGoingDownNext = curNextAnchor.top < nextAnchor.top;
 
@@ -1331,7 +1353,7 @@ function enterCurrentInputMode() {
             if (isGoingDownPrev) {
                 prevWire.wireElem.classList.add("current-down");
             }
-            
+
         }
 
         // set styles
